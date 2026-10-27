@@ -1,0 +1,30 @@
+# Files left out of the changed-lines coverage check (fnmatch globs, relative to the repo root).
+# Rule of thumb: only code without logic of its own — Compose layout and app wiring.
+# ViewModels, Domain and Data always count.
+
+# Composition root and entry point
+app/src/main/java/*/app/*
+
+# Compose screens, dialogs, rows, cards and charts
+app/src/main/java/*/presentation/*Screen.kt
+app/src/main/java/*/presentation/*Dialog.kt
+app/src/main/java/*/presentation/*Row.kt
+app/src/main/java/*/presentation/*Card.kt
+app/src/main/java/*/presentation/vehicles/Charts.kt
+app/src/main/java/*/presentation/maintenance/ServiceKindGrid.kt
+app/src/main/java/*/presentation/common/Badges.kt
+app/src/main/java/*/presentation/common/DateField.kt
+app/src/main/java/*/presentation/common/EmptyState.kt
+app/src/main/java/*/presentation/common/LabeledNumberField.kt
+app/src/main/java/*/presentation/common/OdometerHint.kt
+app/src/main/java/*/presentation/common/Sections.kt
+app/src/main/java/*/presentation/common/SwipeActions.kt
+app/src/main/java/*/presentation/common/ValidationFooter.kt
+app/src/main/java/*/presentation/theme/*
+
+# Android glue: keyboard dismissal and the Resources-backed Localizer
+app/src/main/java/*/presentation/common/KeyboardDismissal.kt
+app/src/main/java/*/presentation/common/Localizer.kt
+
+# Fixtures for Compose previews and the debug seeder
+app/src/main/java/*/data/PreviewData.kt

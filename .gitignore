@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+# Per-user IDE configuration: each clone regenerates what it needs.
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Kotlin
+.kotlin/
+
+# Local CI output (make build/test/coverage)
+app/build/

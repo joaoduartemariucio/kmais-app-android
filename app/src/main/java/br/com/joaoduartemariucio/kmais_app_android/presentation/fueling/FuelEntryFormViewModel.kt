@@ -1,0 +1,141 @@
+package br.com.joaoduartemariucio.kmais_app_android.presentation.fueling
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.Odometer
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.FuelEntry
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.OdometerSample
+import br.com.joaoduartemariucio.kmais_app_android.domain.repositories.FuelEntryRepository
+import br.com.joaoduartemariucio.kmais_app_android.domain.services.DateProvider
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.FormState
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.NumberInput
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.ValidationIssue
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.blocksSaving
+import java.math.BigDecimal
+import java.time.Instant
+import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
+
+class FuelEntryFormViewModel(
+    private val mode: Mode,
+    private val repository: FuelEntryRepository,
+    dateProvider: DateProvider,
+    private val otherReadings: List<OdometerSample>,
+    suggestedPrice: BigDecimal? = null,
+) : ViewModel() {
+    sealed interface Mode {
+        data class Create(
+            val vehicleId: UUID,
+        ) : Mode
+
+        data class Edit(
+            val entry: FuelEntry,
+        ) : Mode
+    }
+
+    private val suggestedPriceText: String? =
+        if (mode is Mode.Create && suggestedPrice != null) NumberInput.text(suggestedPrice, NumberInput.Style.FUEL_PRICE) else null
+
+    var date: Instant by mutableStateOf(if (mode is Mode.Edit) mode.entry.date else dateProvider.now)
+    var odometer by mutableStateOf(if (mode is Mode.Edit) NumberInput.text(mode.entry.odometer, NumberInput.Style.KILOMETERS) else "")
+    var liters by mutableStateOf(if (mode is Mode.Edit) NumberInput.text(mode.entry.liters, NumberInput.Style.LITERS) else "")
+    var pricePerLiter by mutableStateOf(
+        if (mode is Mode.Edit) NumberInput.text(mode.entry.pricePerLiter, NumberInput.Style.FUEL_PRICE) else suggestedPriceText.orEmpty(),
+    )
+    var isFullTank by mutableStateOf(if (mode is Mode.Edit) mode.entry.isFullTank else true)
+
+    var state: FormState by mutableStateOf(FormState.Editing)
+        private set
+
+    val parsedOdometer: Double? get() = NumberInput.double(odometer, NumberInput.Style.KILOMETERS)
+    val parsedLiters: Double? get() = NumberInput.double(liters, NumberInput.Style.LITERS)
+    val parsedPrice: BigDecimal? get() = NumberInput.decimal(pricePerLiter, NumberInput.Style.FUEL_PRICE)
+
+    val isUsingSuggestedPrice: Boolean get() = suggestedPriceText != null && pricePerLiter == suggestedPriceText
+
+    val previousReading: Double? get() = Odometer.neighbors(date, otherReadings).previous
+
+    val distanceSincePrevious: Double?
+        get() {
+            val odometer = parsedOdometer ?: return null
+            val previous = previousReading ?: return null
+            return if (odometer > previous) odometer - previous else null
+        }
+
+    val totalCost: BigDecimal?
+        get() {
+            val liters = parsedLiters ?: return null
+            val price = parsedPrice ?: return null
+            return entry(parsedOdometer ?: 0.0, liters, price).totalCost
+        }
+
+    val issues: List<ValidationIssue>
+        get() =
+            buildList {
+                addAll(ValidationIssue.odometer(parsedOdometer, date, otherReadings))
+
+                val liters = parsedLiters
+                if (liters == null) {
+                    add(ValidationIssue.LitersRequired)
+                } else if (liters <= 0) {
+                    add(ValidationIssue.LitersNotPositive)
+                }
+
+                val price = parsedPrice
+                if (price == null) {
+                    add(ValidationIssue.PriceRequired)
+                } else if (price.signum() <= 0) {
+                    add(ValidationIssue.PriceNotPositive)
+                }
+            }
+
+    val canSave: Boolean get() = !issues.blocksSaving && !state.isSaving
+
+    suspend fun save() {
+        val odometer = parsedOdometer ?: return
+        val liters = parsedLiters ?: return
+        val price = parsedPrice ?: return
+        if (issues.blocksSaving) return
+
+        state = FormState.Saving
+        state =
+            try {
+                repository.save(entry(odometer, liters, price))
+                FormState.Saved
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                FormState.Failed(error)
+            }
+    }
+
+    private fun entry(
+        odometer: Double,
+        liters: Double,
+        price: BigDecimal,
+    ): FuelEntry =
+        when (mode) {
+            is Mode.Create -> {
+                FuelEntry(
+                    vehicleId = mode.vehicleId,
+                    date = date,
+                    odometer = odometer,
+                    liters = liters,
+                    pricePerLiter = price,
+                    isFullTank = isFullTank,
+                )
+            }
+
+            is Mode.Edit -> {
+                mode.entry.copy(
+                    date = date,
+                    odometer = odometer,
+                    liters = liters,
+                    pricePerLiter = price,
+                    isFullTank = isFullTank,
+                )
+            }
+        }
+}

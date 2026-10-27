@@ -1,0 +1,108 @@
+package br.com.joaoduartemariucio.kmais_app_android.presentation.vehicles
+
+import br.com.joaoduartemariucio.kmais_app_android.R
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.Consumption
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.ConsumptionInterval
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.Cost
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.CostSummary
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.Maintenance
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.MaintenanceStatus
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.Odometer
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.ServiceDue
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.monthStart
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.plusMonths
+import br.com.joaoduartemariucio.kmais_app_android.domain.calculations.sum
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.FuelEntry
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.ServiceEntry
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.ServiceRule
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.Vehicle
+import br.com.joaoduartemariucio.kmais_app_android.domain.entities.sortedChronologically
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.Localizer
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.formattedRelativeDays
+import br.com.joaoduartemariucio.kmais_app_android.presentation.common.formattedRemainingKilometers
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.ZoneId
+import java.util.UUID
+
+class VehicleStats(
+    vehicle: Vehicle,
+    fuel: List<FuelEntry>,
+    services: List<ServiceEntry>,
+    rules: List<ServiceRule> = emptyList(),
+    now: Instant,
+    zone: ZoneId = ZoneId.systemDefault(),
+) {
+    data class DueItem(
+        val due: ServiceDue,
+        val status: MaintenanceStatus,
+    ) {
+        val id: UUID get() = due.rule.id
+
+        fun relativeDue(localizer: Localizer): String {
+            if (status.isEstimatePassed) return localizer.string(R.string.estimate_passed)
+            status.remainingDays?.let { return it.formattedRelativeDays(localizer) }
+            return status.remainingKilometers?.formattedRemainingKilometers(localizer) ?: ""
+        }
+    }
+
+    val currentOdometer: Double
+    val latestConsumption: ConsumptionInterval?
+    val averageConsumption: Double?
+    val consumptionHistory: List<ConsumptionInterval>
+    val consumptionByEntry: Map<UUID, Double>
+    val kilometersPerMonth: Double?
+    val cost: CostSummary
+    val spentThisMonth: BigDecimal
+    val lastPricePerLiter: BigDecimal?
+    val dues: List<DueItem>
+
+    val nextDue: DueItem? get() = dues.firstOrNull()
+
+    val attentionLevel: MaintenanceStatus.Level? get() = dues.maxOfOrNull { it.status.level }
+
+    init {
+        val samples = Odometer.samples(vehicle, fuel, services)
+        val intervals = Consumption.intervals(fuel)
+        val current = Odometer.current(samples) ?: vehicle.initialOdometer
+
+        currentOdometer = current
+        latestConsumption = intervals.lastOrNull()
+        averageConsumption = Consumption.average(fuel)
+        consumptionHistory = intervals
+        consumptionByEntry = consumptionByEntry(fuel, intervals)
+        kilometersPerMonth = Maintenance.averageKilometersPerMonth(samples)
+        cost = Cost.summary(fuel, services)
+        lastPricePerLiter = fuel.sortedChronologically().lastOrNull()?.pricePerLiter
+
+        val monthStart = now.monthStart(zone)
+        val nextMonth = monthStart.plusMonths(1, zone)
+        val inThisMonth = { date: Instant -> date >= monthStart && date < nextMonth }
+        spentThisMonth =
+            fuel.filter { inThisMonth(it.date) }.map { it.totalCost }.sum() +
+            services.filter { inThisMonth(it.date) }.map { it.cost }.sum()
+
+        dues =
+            rules
+                .mapNotNull { Maintenance.due(it, vehicle, services, samples, zone) }
+                .map { DueItem(it, Maintenance.status(it, current, now, zone)) }
+                .sortedWith(
+                    compareByDescending<DueItem> { it.status.level }
+                        .then(Maintenance.byDueDate { it.due.forecast.dueDate })
+                        .thenBy { it.due.rule.kind.rawValue },
+                )
+    }
+
+    private companion object {
+        fun consumptionByEntry(
+            fuel: List<FuelEntry>,
+            intervals: List<ConsumptionInterval>,
+        ): Map<UUID, Double> =
+            intervals
+                .mapNotNull { interval ->
+                    fuel
+                        .firstOrNull { it.isFullTank && it.date == interval.endDate && it.odometer == interval.endOdometer }
+                        ?.let { it.id to interval.kilometersPerLiter }
+                }.toMap()
+    }
+}
