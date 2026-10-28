@@ -126,19 +126,23 @@ getters, exactly like computed properties on an `@Observable`.
 One main host, and each feature owns its own routes and entries:
 
 - `presentation/common/navigation/` — `Route` (marker every destination implements) and
-  `Navigator`, which owns the back stack: `open(route)` ignores a second tap on the same
-  destination and `back()` never empties the stack.
+  `Navigator`, which keeps one back stack per tab. The stack `NavDisplay` sees is the start
+  tab's stack, plus the current tab's when it is another one, so Back on another tab's root
+  returns to the start tab. `open(route)` ignores a second tap on the same destination,
+  `back()` never empties the start tab, and tapping the current tab pops it to its root.
 - `presentation/<feature>/navigation/` — the feature's `…Route` sealed interface and a
   `…Entries(navigator)` extension on `EntryProviderScope<Route>` that maps each route to its
   screen. Vehicles: `VehiclesRoute` (`VehicleList`, `ArchivedVehicles`, `VehicleDetail`) in
-  `vehiclesEntries`. Forms stay dialogs opened by their screen, not destinations.
-- `app/navigation/AppNavHost` — the main and only `NavDisplay`: picks the start route, adds
-  each feature's entries and sets the push/pop slide transitions for the whole app.
+  `vehiclesEntries`; Profile: `ProfileRoute.Profile` in `profileEntries`. Forms stay dialogs
+  opened by their screen, not destinations.
+- `app/navigation/AppNavHost` — the main and only `NavDisplay`, inside a `Scaffold` with the
+  bottom bar. It lists the tabs (Vehicles, Archived, Profile), adds each feature's entries and
+  sets the transitions: slide for push and pop inside a tab, instant for a tab switch.
 
-Screens never see routes: they take callbacks (`onOpenVehicle`, `onOpenArchived`, `onBack`)
+Screens never see routes: they take callbacks (`onOpenVehicle`, `onBack`)
 and the feature's entries turn them into `Navigator` calls. A new screen in a feature means a
 new case in its `…Route` and one `entry<…>` in its `…Entries`; a new feature with screens adds
-its own `navigation/` folder and one line in `AppNavHost`.
+its own `navigation/` folder and one line in `AppNavHost`, plus a `Tab` if it is top level.
 
 ### Dependencies
 

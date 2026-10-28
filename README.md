@@ -140,6 +140,7 @@ app/src/main/java/br/com/joaoduartemariucio/rodaro/
     │   └── form/       # VehicleFormDialog + VehicleFormViewModel + components/
     ├── fueling/form/   # FuelEntryFormDialog + FuelEntryFormViewModel
     ├── maintenance/form/ # ServiceEntryFormDialog + ServiceEntryFormViewModel + components/
+    ├── profile/        # ProfileScreen + navigation/ (ProfileRoute, profileEntries)
     ├── reminders/      # ServiceReminderSync
     ├── common/         # forms, formatting, validation, navigation (Route, Navigator), shared building blocks
     └── theme/

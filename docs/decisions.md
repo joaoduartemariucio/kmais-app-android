@@ -191,6 +191,18 @@ nothing to drop.
 
 - **Cost:** a future sync layer has to bring its own conflict handling for ids.
 
+### Android: bottom bar with Vehicles, Archived and Profile
+
+Archived moved from a button on the vehicle list to its own tab, next to Vehicles and Profile.
+Each tab keeps its own back stack, and the bar stays visible on pushed screens, like a tab
+bar on iOS, so the content never changes size during a transition. Switching tabs is
+instant, while push and pop inside a tab slide.
+
+- **Cost:** only the routes of the tabs you are not on are kept. Their entries leave the
+  `NavDisplay` back stack, so their ViewModels and saved UI state are cleared. Coming back
+  reloads the screen; with local data that takes a few milliseconds.
+- **Profile** has no account behind it yet: it shows the app's name, purpose and version.
+
 ### Android: navigation per feature, one main host, slide transitions
 
 Each feature declares its routes and entries in `presentation/<feature>/navigation`; the

@@ -24,6 +24,7 @@ object NumberInput {
             val MONTHS: Style = Integer
             val LITERS: Style = Decimal(2)
             val FUEL_PRICE: Style = Currency(3)
+            val CONSUMPTION: Style = Decimal(1)
             val MONEY: Style = Currency(2)
         }
     }

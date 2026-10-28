@@ -124,6 +124,9 @@
     <string name="total_spent">Gasto total</string>
     <string name="vehicle_type">Tipo</string>
     <string name="vehicles">Veículos</string>
+    <string name="profile">Perfil</string>
+    <string name="format_version">Versão %1$s</string>
+    <string name="profile_tagline">Abastecimentos, consumo, custo por km e lembretes de manutenção dos seus carros e motos.</string>
     <string name="archived_empty_message">Os veículos que você arquivar aparecem aqui.</string>
     <string name="reminders_footer">O lembrete vem no que acontecer primeiro: a distância ou o tempo.</string>
     <string name="when_header">Quando</string>

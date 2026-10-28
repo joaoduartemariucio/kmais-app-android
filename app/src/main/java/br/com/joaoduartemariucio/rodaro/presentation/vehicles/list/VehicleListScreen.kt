@@ -74,8 +74,7 @@ private sealed interface VehicleListSheet {
 fun VehicleListScreen(
     scope: VehicleListViewModel.Scope,
     onOpenVehicle: (Vehicle) -> Unit,
-    onOpenArchived: () -> Unit,
-    onBack: (() -> Unit)?,
+    onBack: (() -> Unit)? = null,
 ) {
     val dependencies = LocalDependencies.current
     val viewModel =
@@ -106,10 +105,6 @@ fun VehicleListScreen(
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-                    } else {
-                        IconButton(onClick = onOpenArchived) {
-                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.archived))
-                        }
                     }
                 },
                 actions = {

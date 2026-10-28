@@ -12,16 +12,12 @@ fun EntryProviderScope<Route>.vehiclesEntries(navigator: Navigator) {
         VehicleListScreen(
             scope = VehicleListViewModel.Scope.ACTIVE,
             onOpenVehicle = { navigator.open(VehiclesRoute.VehicleDetail(it)) },
-            onOpenArchived = { navigator.open(VehiclesRoute.ArchivedVehicles) },
-            onBack = null,
         )
     }
     entry<VehiclesRoute.ArchivedVehicles> {
         VehicleListScreen(
             scope = VehicleListViewModel.Scope.ARCHIVED,
             onOpenVehicle = { navigator.open(VehiclesRoute.VehicleDetail(it)) },
-            onOpenArchived = {},
-            onBack = navigator::back,
         )
     }
     entry<VehiclesRoute.VehicleDetail> { route ->

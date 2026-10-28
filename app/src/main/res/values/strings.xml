@@ -126,6 +126,9 @@
     <string name="total_spent">Total spent</string>
     <string name="vehicle_type">Vehicle type</string>
     <string name="vehicles">Vehicles</string>
+    <string name="profile">Profile</string>
+    <string name="format_version">Version %1$s</string>
+    <string name="profile_tagline">Fuel log, consumption, cost per km and service reminders for your cars and motorcycles.</string>
     <string name="archived_empty_message">Vehicles you archive show up here.</string>
     <string name="reminders_footer">You are reminded at whichever comes first: the distance or the time.</string>
     <string name="when_header">When</string>
