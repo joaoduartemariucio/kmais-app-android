@@ -1,0 +1,30 @@
+package br.com.joaoduartemariucio.rodaro.presentation.vehicles.navigation
+
+import androidx.navigation3.runtime.EntryProviderScope
+import br.com.joaoduartemariucio.rodaro.presentation.common.navigation.Navigator
+import br.com.joaoduartemariucio.rodaro.presentation.common.navigation.Route
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.detail.VehicleDetailScreen
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.list.VehicleListScreen
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.list.VehicleListViewModel
+
+fun EntryProviderScope<Route>.vehiclesEntries(navigator: Navigator) {
+    entry<VehiclesRoute.VehicleList> {
+        VehicleListScreen(
+            scope = VehicleListViewModel.Scope.ACTIVE,
+            onOpenVehicle = { navigator.open(VehiclesRoute.VehicleDetail(it)) },
+            onOpenArchived = { navigator.open(VehiclesRoute.ArchivedVehicles) },
+            onBack = null,
+        )
+    }
+    entry<VehiclesRoute.ArchivedVehicles> {
+        VehicleListScreen(
+            scope = VehicleListViewModel.Scope.ARCHIVED,
+            onOpenVehicle = { navigator.open(VehiclesRoute.VehicleDetail(it)) },
+            onOpenArchived = {},
+            onBack = navigator::back,
+        )
+    }
+    entry<VehiclesRoute.VehicleDetail> { route ->
+        VehicleDetailScreen(vehicle = route.vehicle, onBack = navigator::back)
+    }
+}

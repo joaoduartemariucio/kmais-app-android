@@ -1,6 +1,6 @@
 <div align="center">
 
-# Kmais
+# Rodaro
 
 **Car and motorcycle maintenance tracker for Android: fuel log, real consumption, cost per km and service reminders.**
 
@@ -64,8 +64,8 @@ graph LR
 |---|---|---|
 | **Clean Architecture** | Business rules at the center, frameworks at the edges | `domain/` is plain Kotlin; Room and Compose stay in `data/` and `presentation/` |
 | **MVVM** | Screen state and logic out of the composables | One ViewModel per screen (`VehicleDetailViewModel`, `FuelEntryFormViewModel`, …) with Compose snapshot state |
-| **Repository** | Persistence behind an interface | Interfaces in `domain/repositories`, Room implementations in `data/repositories` |
-| **Mapper** | Storage models never leak | `data/mappers` turns Room entities into plain domain data classes |
+| **Repository** | Persistence behind an interface | Interfaces in `domain/<feature>/repositories`, Room implementations in `data/<feature>/repositories` |
+| **Mapper** | Storage models never leak | `data/<feature>/mappers` turns Room entities into plain domain data classes |
 | **Dependency Injection** | One composition root | `app/AppDependencies` is the only place that creates concrete types, provided via `LocalDependencies` |
 
 ### SOLID in practice
@@ -86,7 +86,7 @@ graph LR
 Clean Architecture sized for a one-developer app, on purpose:
 
 - **No use-case layer** — most would be one-line pass-throughs; business rules live in
-  `domain/calculations` and are tested there.
+  `domain/<feature>/calculations` and are tested there.
 - **Layers as packages, not modules** — boundaries are guarded by lint instead of the compiler;
   `domain` and `data` become Gradle modules once a second target (widget, Wear OS) needs them.
 
@@ -95,7 +95,7 @@ Each trade-off, with what it costs and when to revisit it, is in [decisions](doc
 ### Highlights
 
 - **Pure, deterministic domain.** Consumption, cost, odometer and maintenance forecast are
-  pure functions in `domain/calculations`. The forecast never reads the clock — the latest
+  pure functions in `domain/<feature>/calculations`. The forecast never reads the clock — the latest
   history point acts as "now", so the same history always yields the same prediction.
 - **Money in `BigDecimal`**, never `Double` arithmetic.
 - **Room stays behind interfaces.** Repositories map Room entities to plain data classes;
@@ -110,19 +110,39 @@ Each trade-off, with what it costs and when to revisit it, is in [decisions](doc
 ```
 
 ```
-app/src/main/java/br/com/joaoduartemariucio/kmais_app_android/
-├── app/            # KmaisApplication, MainActivity, AppDependencies (only place that creates concrete types), routing
-├── domain/
-│   ├── entities/       # Vehicle, FuelEntry, ServiceEntry, ServiceRule, ...
-│   ├── calculations/   # Consumption, Cost, Odometer, Maintenance, anomalies, calendar math
-│   ├── repositories/   # interfaces
-│   └── services/       # ReminderScheduler, DateProvider (interfaces)
+app/src/main/java/br/com/joaoduartemariucio/rodaro/
+├── app/            # RodaroApplication, MainActivity, AppDependencies (only place that creates concrete types), navigation/AppNavHost (main host)
+├── domain/             # one folder per feature, Clean Architecture folders inside
+│   ├── vehicles/
+│   │   ├── entities/       # Vehicle, VehicleKind, VehicleRecords, OdometerSample
+│   │   ├── repositories/   # VehicleRepository (interface)
+│   │   └── calculations/   # Odometer
+│   ├── fueling/            # entities/ FuelEntry · repositories/ · calculations/ Consumption, anomalies
+│   ├── maintenance/        # entities/ ServiceEntry, ServiceRule, ServiceKind · repositories/ · calculations/ Maintenance
+│   ├── costs/              # calculations/ Cost, CostSummary (fuel + services)
+│   ├── reminders/          # calculations/ ReminderPlan · services/ ReminderScheduler (interface)
+│   └── common/             # calculations/ calendar math, decimals · entities/ · services/ DateProvider · errors/
 ├── data/
-│   ├── models/         # Room entities, DAOs, KmaisDatabase
-│   ├── mappers/        # Room entity <-> domain entity
-│   ├── repositories/   # Room implementations
-│   └── services/       # WorkManager notifications, system clock
-└── presentation/   # vehicles, fueling, maintenance, reminders, common (forms, formatting, validation), theme
+│   ├── vehicles/
+│   │   ├── models/         # VehicleModel, VehicleDao
+│   │   ├── mappers/        # VehicleMapper
+│   │   └── repositories/   # RoomVehicleRepository
+│   ├── fueling/            # models/ · mappers/ · repositories/
+│   ├── maintenance/        # models/ · mappers/ · repositories/
+│   ├── reminders/          # services/ WorkManager scheduler, ReminderWorker, NotificationPermission
+│   ├── database/           # RodaroDatabase, Converters
+│   └── common/             # repositories/ persisting · services/ SystemDateProvider
+└── presentation/
+    ├── vehicles/       # VehicleStats (shared by list and detail)
+    │   ├── navigation/ # VehiclesRoute + vehiclesEntries
+    │   ├── list/       # VehicleListScreen + VehicleListViewModel + components/
+    │   ├── detail/     # VehicleDetailScreen + VehicleDetailViewModel + VehicleTimeline + components/
+    │   └── form/       # VehicleFormDialog + VehicleFormViewModel + components/
+    ├── fueling/form/   # FuelEntryFormDialog + FuelEntryFormViewModel
+    ├── maintenance/form/ # ServiceEntryFormDialog + ServiceEntryFormViewModel + components/
+    ├── reminders/      # ServiceReminderSync
+    ├── common/         # forms, formatting, validation, navigation (Route, Navigator), shared building blocks
+    └── theme/
 ```
 
 Design decisions are written down instead of commented in code:

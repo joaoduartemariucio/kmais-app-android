@@ -7,6 +7,28 @@ why, and what it costs. Newest first within each group. Product decisions are sh
 
 ## Platform parity
 
+### Android: the app is Rodaro, `br.com.joaoduartemariucio.rodaro`
+
+The app was renamed from KMais to Rodaro. The package, `namespace` and `applicationId` all became
+`br.com.joaoduartemariucio.rodaro`, and the `Kmais…` types became `Rodaro…` (`RodaroDatabase`,
+`RodaroApplication`, `RodaroTheme`, `Theme.Rodaro`). With no `_` in the package, ktlint's
+`package-name` rule is back on.
+
+- **Cost:** a new `applicationId` is a new app for Android and the Play Store. An install of the
+  old id keeps its data and is not upgraded; the database file is now `rodaro.db`.
+- **Not renamed:** the repository (`kmais-app-android`, `rootProject.name`) and the links to
+  `kmais-app-ios`, which follow the GitHub repository names.
+
+### Android: launcher icon from a bitmap
+
+The icon is the teal "R" with a road on `#0E131D`. The adaptive icon uses PNG layers per
+density (`mipmap-*/ic_launcher_foreground.png`, `ic_launcher_monochrome.png` for themed icons)
+over the `ic_launcher_background` color, with the logo inside the 66 dp safe zone. The
+notification small icon (`drawable-*/ic_notification.png`) is the same silhouette in white.
+Legacy `ic_launcher.webp` files were removed: with `minSdk` 36 the adaptive icon is always used.
+
+- **Revisit when:** a vector version of the logo exists — it would replace the PNGs.
+
 ### One app, two native codebases, same rules
 
 The Android app is a port of the iOS app, not a reinterpretation: the same screens, the same
@@ -125,9 +147,40 @@ with the same names, ignoring comments and strings.
 ### No use-case layer
 
 - **Why:** most use cases would be one-line pass-throughs to a repository. Business rules
-  live in `domain/calculations` and are tested there.
+  live in `domain/<feature>/calculations` and are tested there.
 - **Revisit when:** the same flow is triggered from three or more screens, or one operation
   has to coordinate several repositories consistently.
+
+### Domain and Data grouped by feature
+
+`domain/` and `data/` are split into `vehicles/`, `fueling/`, `maintenance/` and `reminders/`
+(plus `costs/` in Domain and `database/` in Data), with `common/` for what every feature
+uses. Inside each feature the Clean Architecture folders stay: `entities/`, `repositories/`,
+`calculations/`, `services/` in Domain; `models/`, `mappers/`, `repositories/`, `services/` in
+Data. The odometer belongs to
+`vehicles/` because readings come from both fuel-ups and services; `Cost` gets its own
+package for the same reason.
+
+- **Why:** the same split as `presentation/`, so a feature is found by name in every layer,
+  and inside it each kind of type still has its usual place.
+- **Cost:** Room exports the schema under the database's qualified name, so the folder in
+  `app/schemas/` moved to `…data.database.RodaroDatabase`. WorkManager stores the worker's
+  class name, so a reminder scheduled before the move fails to start; the next sync replaces
+  it (`enqueueUniqueWork` with `REPLACE`).
+
+### One folder per screen in `presentation/`
+
+Each screen gets its own package with its composable, its ViewModel and a `components/`
+folder for the rows and cards only it uses: `vehicles/list`, `vehicles/detail`,
+`vehicles/form`, `fueling/form`, `maintenance/form`. The fuel and service rows live in
+`vehicles/detail/components` because the detail timeline is the only place they show up.
+`VehicleStats` stays in `vehicles/` because both the list and the detail use it; code shared
+across features stays in `common/`.
+
+- **Why:** finding a screen means opening one folder, and a screen's private pieces are not
+  mixed with another screen's.
+- **Cost:** a component that starts being reused has to move to the feature root or to
+  `common/`.
 
 ### Android: Room with foreign keys, sync off
 
@@ -137,6 +190,27 @@ references its vehicle with `ON DELETE CASCADE`, so orphans cannot exist and the
 nothing to drop.
 
 - **Cost:** a future sync layer has to bring its own conflict handling for ids.
+
+### Android: navigation per feature, one main host, slide transitions
+
+Each feature declares its routes and entries in `presentation/<feature>/navigation`; the
+shared `Route` and `Navigator` are in `presentation/common/navigation`; `app/navigation/AppNavHost`
+is the single `NavDisplay` that adds every feature's entries. Screens only get callbacks.
+A feature's routes are its own business, the same way its screens are — one central file
+listing every destination would grow with every feature and mix them together.
+Pushes slide the new screen in from the right over the old one, and pops do the reverse, like a
+navigation stack on iOS.
+
+- **Why:** the Navigation 3 default is a crossfade. Halfway through it both screens are
+  translucent and the window background shows through, which looked like a blink, worst in
+  dark mode, where the window theme was still light. Slides keep both screens opaque, the
+  window theme now follows the system (`values-night/themes.xml`) and `AppNavHost` draws an
+  opaque background under every transition.
+- **Also:** `LoadingIndicator` shows the spinner only after 400 ms, so a fast local load never
+  flashes a spinner during the transition.
+- **Cost:** the back stack lives in `remember`, so a configuration change that recreates the
+  activity returns to the vehicle list. Keeping it needs saveable routes (ids instead of the
+  `Vehicle` in `VehiclesRoute.VehicleDetail`).
 
 ### Android: ViewModels live in the navigation entry; forms live in their dialog
 
@@ -256,7 +330,7 @@ Permission to notify is asked only when there is something to schedule.
 It coordinates three repositories and the scheduler and is triggered from two screens — the
 trigger the "No use-case layer" decision set for revisiting. It lives in
 `presentation/reminders` because it builds localized notification text; the scheduling rule
-itself is in `domain/calculations/ReminderPlan.kt`.
+itself is in `domain/reminders/calculations/ReminderPlan.kt`.
 
 ### Service status: on track, due soon, overdue
 

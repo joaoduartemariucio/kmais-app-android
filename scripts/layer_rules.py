@@ -9,7 +9,7 @@ import pathlib
 import re
 import sys
 
-SOURCE = pathlib.Path("app/src/main/java/br/com/joaoduartemariucio/kmais_app_android")
+SOURCE = pathlib.Path("app/src/main/java/br/com/joaoduartemariucio/rodaro")
 
 RULES = [
     (
@@ -21,14 +21,14 @@ RULES = [
     (
         "domain_no_outer_layers",
         "domain/**/*.kt",
-        r"^\s*import\s+br\.com\.joaoduartemariucio\.kmais_app_android\.(data|presentation|app)\.",
+        r"^\s*import\s+br\.com\.joaoduartemariucio\.rodaro\.(data|presentation|app)\.",
         "Domain depends on nothing. Move the shared type into Domain or invert the dependency.",
     ),
     (
         "presentation_no_data_types",
         "presentation/**/*.kt",
-        r"(\bimport\s+br\.com\.joaoduartemariucio\.kmais_app_android\.data\.|"
-        r"\b(VehicleModel|FuelEntryModel|ServiceEntryModel|ServiceRuleModel|KmaisDatabase|VehicleDao|FuelEntryDao|"
+        r"(\bimport\s+br\.com\.joaoduartemariucio\.rodaro\.data\.|"
+        r"\b(VehicleModel|FuelEntryModel|ServiceEntryModel|ServiceRuleModel|RodaroDatabase|VehicleDao|FuelEntryDao|"
         r"ServiceDao|RoomDatabase|Room[A-Za-z]+Repository|WorkManager[A-Za-z]*)\b)",
         "Presentation talks to Domain interfaces only. This type belongs to the Data layer.",
     ),

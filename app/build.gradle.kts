@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "br.com.joaoduartemariucio.kmais_app_android"
+    namespace = "br.com.joaoduartemariucio.rodaro"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "br.com.joaoduartemariucio.kmais_app_android"
+        applicationId = "br.com.joaoduartemariucio.rodaro"
         minSdk = 36
         targetSdk = 37
         versionCode = 1

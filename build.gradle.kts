@@ -10,7 +10,6 @@ val ktlintRules =
         "ktlint_code_style" to "ktlint_official",
         "max_line_length" to "140",
         "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
-        "ktlint_standard_package-name" to "disabled",
         "ktlint_standard_backing-property-naming" to "disabled",
         "ktlint_standard_property-naming" to "disabled",
     )

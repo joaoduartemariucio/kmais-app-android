@@ -50,7 +50,6 @@ baseline for Kotlin — with a few options pinned:
 | Option | Value | Why |
 |---|---|---|
 | Max line length | 140 | Compose call chains get long; off for tests, whose names are sentences |
-| `package-name` | off | the namespace `kmais_app_android` comes from the project template |
 | `function-naming` | Composables may be PascalCase; off for tests (backtick names) | |
 | `property-naming`, `backing-property-naming` | off | Compose state and `R` constants clash with them |
 

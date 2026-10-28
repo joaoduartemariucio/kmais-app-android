@@ -1,6 +1,6 @@
 # Architecture
 
-Kmais follows a pragmatic **Clean Architecture** with **MVVM** for screens, the **Repository**
+Rodaro follows a pragmatic **Clean Architecture** with **MVVM** for screens, the **Repository**
 pattern for persistence and **SOLID** principles — mainly dependency inversion. It is the
 same design as [kmais-app-ios](https://github.com/joaoduartemariucio/kmais-app-ios), layer for
 layer, with Android's tools in place of Apple's. The
@@ -23,14 +23,14 @@ graph LR
 | `domain/` | Entities, calculations, repository and service interfaces, errors | Kotlin stdlib, `java.time`, `java.math` | Android, Jetpack, `data`, `presentation` |
 | `data/` | Room entities and DAOs, mappers, repositories, WorkManager scheduler, system clock | `domain`, Room, WorkManager | `presentation` |
 | `presentation/` | Composables, ViewModels, form helpers, formatting, localization | `domain`, Jetpack Compose, Android resources | `data` |
-| `app/` | `KmaisApplication`, `MainActivity`, `RootView`, routes, `AppDependencies` | everything | — |
+| `app/` | `RodaroApplication`, `MainActivity`, `AppDependencies`, `navigation/AppNavHost` | everything | — |
 
 | iOS | Android |
 |---|---|
 | SwiftUI | Jetpack Compose + Material 3 |
 | `@Observable` ViewModel | `ViewModel` with Compose `mutableStateOf` state |
 | SwiftData `@Model` / `@ModelActor` | Room `@Entity` / `@Dao` behind `suspend` repositories |
-| `NavigationStack(path:)` | Navigation 3 back stack of `AppRoute` values |
+| `NavigationStack(path:)` | Navigation 3 back stack of `Route` values, one sealed set per feature |
 | `.sheet` | full-screen `Dialog` (`FormDialog`) |
 | `UNUserNotificationCenter` | WorkManager + `NotificationCompat` |
 | `Decimal`, `Date`, `Calendar` | `BigDecimal`, `Instant`, `ZoneId` |
@@ -42,7 +42,11 @@ graph LR
 
 ## Domain
 
-Plain data classes and pure functions with no Android dependency.
+Plain data classes and pure functions with no Android dependency, grouped by feature:
+`vehicles/`, `fueling/`, `maintenance/`, `costs/`, `reminders/`, and `common/` for what every
+feature uses (calendar math, decimals, chronology, `DateProvider`, `RepositoryError`). Inside
+each feature the usual folders: `entities/`, `repositories/` (interfaces), `calculations/`,
+`services/` (interfaces) and `errors/`, only the ones it needs.
 
 - **Entities** — `Vehicle`, `FuelEntry`, `ServiceEntry`, `ServiceRule`, `OdometerSample`.
 - **Calculations** — one object per concern, each with its own tests:
@@ -64,20 +68,26 @@ reading, so the same input always gives the same output.
 
 ## Data
 
-- `models/` — Room entities, all suffixed `Model` (the layer rule relies on it), their DAOs
-  and `KmaisDatabase`. Each record belongs to a vehicle through a foreign key with
+Grouped by feature like Domain: `vehicles/`, `fueling/` and `maintenance/` each have
+`models/` (Room entities and DAO), `mappers/` and `repositories/`; `reminders/services/` holds
+WorkManager; `database/` and `common/` hold what is shared.
+
+- **Room entities** — all suffixed `Model` (the layer rule relies on it), one DAO per feature,
+  and `RodaroDatabase` in `database/`. Each record belongs to a vehicle through a foreign key with
   `ON DELETE CASCADE`; ids are UUIDs stored as text and money is stored as a decimal string.
   The schema is exported to `app/schemas/` so migrations can be checked.
-- `mappers/` — Room model ⇄ entity, in both directions.
-- `repositories/` — one Room repository per interface. Every call goes through `persisting`,
+- **Mappers** — Room model ⇄ entity, in both directions.
+- **Repositories** — one Room repository per interface. Every call goes through `persisting`,
   which wraps storage exceptions in `RepositoryError.PersistenceFailed` and lets domain errors
   and cancellation through.
-- `services/` — `SystemDateProvider`, `WorkManagerReminderScheduler`, `ReminderWorker` (posts
+- **Services** — `SystemDateProvider` (`common/`), `WorkManagerReminderScheduler`, `ReminderWorker` (posts
   the notification) and `NotificationPermission` (bridges the runtime permission to the activity).
 
 ## Presentation
 
-One ViewModel per screen, depending only on Domain interfaces. State is Compose snapshot
+One ViewModel per screen, depending only on Domain interfaces. Each screen has its own
+package — composable, ViewModel and a `components/` folder for the pieces only it uses (see
+[decisions](decisions.md#one-folder-per-screen-in-presentation)). State is Compose snapshot
 state (`mutableStateOf`), so derived values (`issues`, `canSave`, `totalCost`, …) are plain
 getters, exactly like computed properties on an `@Observable`.
 
@@ -102,7 +112,7 @@ getters, exactly like computed properties on an `@Observable`.
 - **Vehicle dashboard** — `VehicleStats` gathers everything a card shows (consumption history,
   km/L per closing fill-up, this month's spending, every reminder with its status);
   `VehicleTimeline` groups the history by month, filters it and builds the spending chart data.
-  Charts are drawn with Compose `Canvas` (`Charts.kt`).
+  Charts are drawn with Compose `Canvas` (`vehicles/detail/components/Charts.kt`).
 - **Reminders** — `ServiceReminderSync` re-plans service notifications at the end of the
   list and detail `load()`: it gathers each active vehicle's records, asks
   `ReminderPlan.reminders(records, now, zone)` (Domain) when each rule is due, cancels stale
@@ -110,6 +120,27 @@ getters, exactly like computed properties on an `@Observable`.
   [decisions](decisions.md#reminders).
 
 ## App
+
+### Navigation
+
+One main host, and each feature owns its own routes and entries:
+
+- `presentation/common/navigation/` — `Route` (marker every destination implements) and
+  `Navigator`, which owns the back stack: `open(route)` ignores a second tap on the same
+  destination and `back()` never empties the stack.
+- `presentation/<feature>/navigation/` — the feature's `…Route` sealed interface and a
+  `…Entries(navigator)` extension on `EntryProviderScope<Route>` that maps each route to its
+  screen. Vehicles: `VehiclesRoute` (`VehicleList`, `ArchivedVehicles`, `VehicleDetail`) in
+  `vehiclesEntries`. Forms stay dialogs opened by their screen, not destinations.
+- `app/navigation/AppNavHost` — the main and only `NavDisplay`: picks the start route, adds
+  each feature's entries and sets the push/pop slide transitions for the whole app.
+
+Screens never see routes: they take callbacks (`onOpenVehicle`, `onOpenArchived`, `onBack`)
+and the feature's entries turn them into `Navigator` calls. A new screen in a feature means a
+new case in its `…Route` and one `entry<…>` in its `…Entries`; a new feature with screens adds
+its own `navigation/` folder and one line in `AppNavHost`.
+
+### Dependencies
 
 `AppDependencies` is the only place that creates concrete types. It is provided to the
 composition through `LocalDependencies` and has three flavors: `live(context)`,
@@ -134,7 +165,7 @@ ViewModel reloads.
 |---|---|
 | `domain_no_android` | a file in `domain/` imports `android.*`, `androidx.*` or `com.google.android.*` |
 | `domain_no_outer_layers` | a file in `domain/` imports from `data`, `presentation` or `app` |
-| `presentation_no_data_types` | a file in `presentation/` imports from `data` or mentions a Data type (`VehicleModel`, `KmaisDatabase`, `Room…Repository`, `WorkManager…`, …) |
+| `presentation_no_data_types` | a file in `presentation/` imports from `data` or mentions a Data type (`VehicleModel`, `RodaroDatabase`, `Room…Repository`, `WorkManager…`, …) |
 
 Comments and string literals are ignored. The Domain rules are exact (they match real
 imports). The Presentation rule also matches names, so **a new Room entity must be added to
@@ -151,9 +182,9 @@ JUnit 4, in `app/src/test/`:
 
 ## Adding a feature
 
-1. **Domain:** add or extend the entity and write the calculation as a pure function, with tests.
+1. **Domain:** in the feature's folder, add or extend the entity (`entities/`) and write the calculation as a pure function, with tests.
 2. **Domain:** if it needs storage, add the method to the repository interface.
-3. **Data:** implement it in the Room repository; a new entity goes in `KmaisDatabase`
+3. **Data:** implement it in the Room repository; a new entity goes in `RodaroDatabase`
    **and** in the `presentation_no_data_types` rule; bump the version and add a migration.
 4. **Presentation:** ViewModel talks to the interface; test it with the in-memory fakes.
 5. **App:** only touch `AppDependencies` if a new concrete type is needed.

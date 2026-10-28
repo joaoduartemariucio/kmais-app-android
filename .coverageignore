@@ -10,12 +10,14 @@ app/src/main/java/*/presentation/*Screen.kt
 app/src/main/java/*/presentation/*Dialog.kt
 app/src/main/java/*/presentation/*Row.kt
 app/src/main/java/*/presentation/*Card.kt
-app/src/main/java/*/presentation/vehicles/Charts.kt
-app/src/main/java/*/presentation/maintenance/ServiceKindGrid.kt
+app/src/main/java/*/presentation/vehicles/detail/components/Charts.kt
+app/src/main/java/*/presentation/maintenance/form/components/ServiceKindGrid.kt
+app/src/main/java/*/presentation/*/navigation/*Navigation.kt
 app/src/main/java/*/presentation/common/Badges.kt
 app/src/main/java/*/presentation/common/DateField.kt
 app/src/main/java/*/presentation/common/EmptyState.kt
 app/src/main/java/*/presentation/common/LabeledNumberField.kt
+app/src/main/java/*/presentation/common/LoadingIndicator.kt
 app/src/main/java/*/presentation/common/OdometerHint.kt
 app/src/main/java/*/presentation/common/Sections.kt
 app/src/main/java/*/presentation/common/SwipeActions.kt

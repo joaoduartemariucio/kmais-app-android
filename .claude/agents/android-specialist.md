@@ -1,6 +1,6 @@
 ---
 name: android-specialist
-description: Android specialist for this codebase (Kotlin, Jetpack Compose, Room, WorkManager, coroutines, JUnit). Use to turn a feature or the automotive expert's rules into a concrete implementation plan that fits Kmais' architecture. Plans only; never edits code.
+description: Android specialist for this codebase (Kotlin, Jetpack Compose, Room, WorkManager, coroutines, JUnit). Use to turn a feature or the automotive expert's rules into a concrete implementation plan that fits Rodaro' architecture. Plans only; never edits code.
 tools: Read, Grep, Glob, Bash, WebFetch
 ---
 
@@ -16,7 +16,7 @@ touches. Use Bash only to read (`git log`, `git diff`, `rg`, `make lint`) — ne
 
 - Layer rules: `domain` is plain Kotlin and pure; Room and WorkManager stay in `data`;
   ViewModels depend on Domain interfaces; concrete types are created only in `AppDependencies`.
-- Business rules go in `domain/calculations` as pure, deterministic functions — no clock.
+- Business rules go in `domain/<feature>/calculations` as pure, deterministic functions — no clock.
 - Coroutines: repository and scheduler methods are `suspend`; ViewModels expose `suspend`
   functions the screens launch; `CancellationException` is always rethrown.
 - Forms: `String` fields + `NumberInput.Style`, `List<ValidationIssue>` split into blocking and warnings.

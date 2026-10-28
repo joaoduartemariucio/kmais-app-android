@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">KMais</string>
+    <string name="app_name" translatable="false">Rodaro</string>
     <string name="notification_channel_reminders">Service reminders</string>
     <string name="format_consumption">%1$s km/L</string>
     <string name="format_km_left">%1$s left</string>

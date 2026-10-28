@@ -1,6 +1,6 @@
 # AI agents
 
-Kmais is built with AI coding agents. Instead of one general-purpose assistant doing
+Rodaro is built with AI coding agents. Instead of one general-purpose assistant doing
 everything, the work is split across four Claude Code subagents defined in
 [`.claude/agents/`](../.claude/agents/), and every agent — of any tool — reads the same
 project guide, [`AGENTS.md`](../AGENTS.md). The setup is the same as in

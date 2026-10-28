@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guide for AI coding agents working on Kmais — an Android app that tracks car and motorcycle
+Guide for AI coding agents working on Rodaro — an Android app that tracks car and motorcycle
 maintenance: fuel log, consumption, cost per km and service reminders. It is the Android
 twin of [kmais-app-ios](https://github.com/joaoduartemariucio/kmais-app-ios): same screens,
 rules, agents and CI gates.
@@ -25,7 +25,7 @@ Pragmatic Clean Architecture in one module, packages as layers. Details: [docs/a
 - `domain/` is **plain Kotlin** (`java.time`, `java.math` only). Entities are immutable
   `data class`es; calculations are pure functions and never read the clock.
 - `data/` is the only place that knows Room and WorkManager. Room entities end in `Model`; a
-  new one must be added to `KmaisDatabase` **and** to the `presentation_no_data_types` rule in
+  new one must be added to `RodaroDatabase` **and** to the `presentation_no_data_types` rule in
   `scripts/layer_rules.py`. A schema change bumps the version and ships a migration.
 - `presentation/` talks to Domain interfaces only. One ViewModel per screen, state in Compose
   `mutableStateOf`. No Room `Flow` collected in the UI.

@@ -1,0 +1,67 @@
+package br.com.joaoduartemariucio.rodaro.presentation.common
+
+import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.calculations.Odometer
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.OdometerSample
+import java.time.Instant
+
+sealed interface ValidationIssue {
+    data object NameRequired : ValidationIssue
+
+    data object OdometerRequired : ValidationIssue
+
+    data class OdometerNotAfterPrevious(
+        val previous: Double,
+    ) : ValidationIssue
+
+    data class OdometerNotBeforeNext(
+        val next: Double,
+    ) : ValidationIssue
+
+    data object LitersRequired : ValidationIssue
+
+    data object LitersNotPositive : ValidationIssue
+
+    data object PriceRequired : ValidationIssue
+
+    data object PriceNotPositive : ValidationIssue
+
+    data object CostNegative : ValidationIssue
+
+    data object RuleWithoutInterval : ValidationIssue
+
+    val isBlocking: Boolean
+        get() = this !is OdometerNotAfterPrevious && this !is OdometerNotBeforeNext
+
+    fun message(localizer: Localizer): String =
+        when (this) {
+            NameRequired -> localizer.string(R.string.issue_name_required)
+            OdometerRequired -> localizer.string(R.string.issue_odometer_required)
+            is OdometerNotAfterPrevious -> localizer.string(R.string.issue_odometer_not_after_previous, previous.formattedKilometers())
+            is OdometerNotBeforeNext -> localizer.string(R.string.issue_odometer_not_before_next, next.formattedKilometers())
+            LitersRequired -> localizer.string(R.string.issue_liters_required)
+            LitersNotPositive -> localizer.string(R.string.issue_liters_not_positive)
+            PriceRequired -> localizer.string(R.string.issue_price_required)
+            PriceNotPositive -> localizer.string(R.string.issue_price_not_positive)
+            CostNegative -> localizer.string(R.string.issue_cost_negative)
+            RuleWithoutInterval -> localizer.string(R.string.issue_rule_without_interval)
+        }
+
+    companion object {
+        fun odometer(
+            odometer: Double?,
+            date: Instant,
+            otherReadings: List<OdometerSample>,
+        ): List<ValidationIssue> {
+            odometer ?: return listOf(OdometerRequired)
+
+            val neighbors = Odometer.neighbors(date, otherReadings)
+            val issues = mutableListOf<ValidationIssue>()
+            neighbors.previous?.let { if (odometer <= it) issues += OdometerNotAfterPrevious(it) }
+            neighbors.next?.let { if (odometer >= it) issues += OdometerNotBeforeNext(it) }
+            return issues
+        }
+    }
+}
+
+val List<ValidationIssue>.blocksSaving: Boolean get() = any { it.isBlocking }
