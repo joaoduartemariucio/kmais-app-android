@@ -1,12 +1,27 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
     jacoco
 }
+
+val orsApiKeyFromLocalProperties =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.lineSequence()
+        ?.firstOrNull { it.startsWith("ors.api.key=") }
+        ?.substringAfter("=")
+        ?.trim()
+        .orEmpty()
+
+val orsApiKeyFromEnvironment = providers.environmentVariable("OPEN_ROUTE_API_KEY").orNull?.trim().orEmpty()
+
+val orsApiKey = orsApiKeyFromLocalProperties.ifBlank { orsApiKeyFromEnvironment }
 
 android {
     namespace = "br.com.joaoduartemariucio.rodaro"
@@ -25,6 +40,7 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
             resValue("string", "admob_app_id", "ca-app-pub-3940256099942544~3347511713")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-3940256099942544/9214589741")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-3940256099942544/1033173712")
@@ -35,6 +51,7 @@ android {
             optimization {
                 enable = false
             }
+            buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
             resValue("string", "admob_app_id", "ca-app-pub-1068825778444539~3367882368")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-1068825778444539/5512371965")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-1068825778444539/8484477679")
@@ -51,6 +68,7 @@ android {
     buildFeatures {
         compose = true
         resValues = true
+        buildConfig = true
     }
 
     testOptions {
@@ -101,6 +119,10 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
@@ -109,6 +131,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.okhttp.mockwebserver)
 }
 
 tasks.withType<Test>().configureEach {

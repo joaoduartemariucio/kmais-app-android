@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.WorkManager
+import br.com.joaoduartemariucio.rodaro.BuildConfig
 import br.com.joaoduartemariucio.rodaro.data.PreviewData
 import br.com.joaoduartemariucio.rodaro.data.common.services.FirebaseAccountService
 import br.com.joaoduartemariucio.rodaro.data.common.services.FirebaseAnalyticsTracker
@@ -12,16 +13,26 @@ import br.com.joaoduartemariucio.rodaro.data.common.services.SystemDateProvider
 import br.com.joaoduartemariucio.rodaro.data.database.RodaroDatabase
 import br.com.joaoduartemariucio.rodaro.data.fueling.repositories.RoomFuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.data.maintenance.repositories.RoomServiceRepository
+import br.com.joaoduartemariucio.rodaro.data.network.OrsNetwork
+import br.com.joaoduartemariucio.rodaro.data.preferences.LocaleLanguageApplier
+import br.com.joaoduartemariucio.rodaro.data.preferences.SharedPreferencesPreferencesRepository
 import br.com.joaoduartemariucio.rodaro.data.reminders.services.NotificationPermission
 import br.com.joaoduartemariucio.rodaro.data.reminders.services.WorkManagerReminderScheduler
+import br.com.joaoduartemariucio.rodaro.data.trips.repositories.OpenRouteServiceProvider
+import br.com.joaoduartemariucio.rodaro.data.trips.repositories.RoomRouteRepository
 import br.com.joaoduartemariucio.rodaro.data.vehicles.repositories.RoomVehicleRepository
 import br.com.joaoduartemariucio.rodaro.domain.common.services.AccountService
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.repositories.ServiceRepository
+import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.ReminderScheduler
+import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
+import br.com.joaoduartemariucio.rodaro.domain.trips.services.RouteEstimateProvider
+import br.com.joaoduartemariucio.rodaro.domain.trips.services.UnavailableRouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
+import br.com.joaoduartemariucio.rodaro.presentation.common.DisplayPreferences
 import br.com.joaoduartemariucio.rodaro.presentation.common.ResourcesLocalizer
 import br.com.joaoduartemariucio.rodaro.presentation.reminders.ServiceReminderSync
 import kotlinx.coroutines.Dispatchers
@@ -37,8 +48,17 @@ class AppDependencies(
     val vehicleRepository: VehicleRepository = RoomVehicleRepository(database.vehicles())
     val fuelEntryRepository: FuelEntryRepository = RoomFuelEntryRepository(database.fuelEntries(), database.vehicles())
     val serviceRepository: ServiceRepository = RoomServiceRepository(database.services(), database.vehicles())
+    val routeRepository: RouteRepository = RoomRouteRepository(database.tripRoutes())
+    val routeEstimateProvider: RouteEstimateProvider =
+        if (BuildConfig.ORS_API_KEY.isEmpty()) {
+            UnavailableRouteEstimateProvider
+        } else {
+            OpenRouteServiceProvider(OrsNetwork.api(BuildConfig.ORS_API_KEY))
+        }
     val dateProvider: DateProvider = SystemDateProvider()
     val accountService: AccountService = FirebaseAccountService(context)
+    val preferencesRepository: PreferencesRepository = SharedPreferencesPreferencesRepository(context)
+    val localeLanguageApplier = LocaleLanguageApplier(context)
     val clearLocalData: suspend () -> Unit = {
         withContext(Dispatchers.IO) {
             WorkManager.getInstance(context).cancelAllWork()
@@ -56,7 +76,12 @@ class AppDependencies(
             scheduler = reminderScheduler,
             dateProvider = dateProvider,
             localizer = ResourcesLocalizer(context.resources),
+            preferences = preferencesRepository,
         )
+
+    init {
+        DisplayPreferences.update(runBlocking { preferencesRepository.get() })
+    }
 
     companion object {
         fun live(context: Context): AppDependencies =

@@ -1,6 +1,7 @@
 package br.com.joaoduartemariucio.rodaro.presentation.common
 
 import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.CurrencyOption
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.Instant
@@ -27,11 +28,12 @@ object Formats {
         value: BigDecimal,
         fractionDigits: Int? = null,
         locale: Locale = Locale.getDefault(),
+        override: CurrencyOption? = UnitConversion.preferredCurrency,
     ): String =
         NumberFormat
             .getCurrencyInstance(locale)
             .apply {
-                currency = currencyFor(locale)
+                currency = override?.let { Currency.getInstance(it.code) } ?: currencyFor(locale)
                 if (fractionDigits != null) {
                     minimumFractionDigits = fractionDigits
                     maximumFractionDigits = fractionDigits
@@ -55,11 +57,26 @@ object Formats {
     }
 }
 
-fun Double.formattedKilometers(fractionDigits: Int = 0): String = "${Formats.number(this, fractionDigits)} km"
+fun Double.formattedKilometers(fractionDigits: Int = 0): String =
+    if (UnitConversion.isImperial) {
+        "${Formats.number(UnitConversion.distance(this), fractionDigits)} mi"
+    } else {
+        "${Formats.number(this, fractionDigits)} km"
+    }
 
-fun Double.formattedLiters(fractionDigits: Int = 2): String = "${Formats.number(this, fractionDigits)} L"
+fun Double.formattedLiters(fractionDigits: Int = 2): String =
+    if (UnitConversion.isImperial) {
+        "${Formats.number(UnitConversion.volume(this), fractionDigits)} gal"
+    } else {
+        "${Formats.number(this, fractionDigits)} L"
+    }
 
-fun Double.formattedConsumption(localizer: Localizer): String = localizer.string(R.string.format_consumption, Formats.number(this, 1))
+fun Double.formattedConsumption(localizer: Localizer): String =
+    if (UnitConversion.isImperial) {
+        localizer.string(R.string.format_consumption_mpg, Formats.number(UnitConversion.consumption(this), 1))
+    } else {
+        localizer.string(R.string.format_consumption, Formats.number(this, 1))
+    }
 
 fun Double.formattedKilometersPerMonth(localizer: Localizer): String = localizer.string(R.string.format_per_month, formattedKilometers())
 
@@ -81,9 +98,19 @@ fun Int.formattedRelativeDays(localizer: Localizer): String =
 
 val BigDecimal.formattedCurrency: String get() = Formats.currency(this)
 
-fun BigDecimal.formattedPerKilometer(localizer: Localizer): String = localizer.string(R.string.format_per_km, formattedCurrency)
+fun BigDecimal.formattedPerKilometer(localizer: Localizer): String =
+    if (UnitConversion.isImperial) {
+        localizer.string(R.string.format_per_mile, UnitConversion.perDistance(this).formattedCurrency)
+    } else {
+        localizer.string(R.string.format_per_km, formattedCurrency)
+    }
 
-fun BigDecimal.formattedPerLiter(localizer: Localizer): String = localizer.string(R.string.format_per_liter, formattedCurrency)
+fun BigDecimal.formattedPerLiter(localizer: Localizer): String =
+    if (UnitConversion.isImperial) {
+        localizer.string(R.string.format_per_gallon, UnitConversion.perVolume(this).formattedCurrency)
+    } else {
+        localizer.string(R.string.format_per_liter, formattedCurrency)
+    }
 
 fun Instant.formattedDay(zone: ZoneId = ZoneId.systemDefault()): String = Formats.date(this, "dMMM", zone)
 

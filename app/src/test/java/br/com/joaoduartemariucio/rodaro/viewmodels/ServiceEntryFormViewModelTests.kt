@@ -13,14 +13,18 @@ import br.com.joaoduartemariucio.rodaro.calculations.utc
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.UnitSystem
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.OdometerSample
 import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
+import br.com.joaoduartemariucio.rodaro.presentation.common.DisplayPreferences
 import br.com.joaoduartemariucio.rodaro.presentation.common.FormState
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
 import br.com.joaoduartemariucio.rodaro.presentation.maintenance.form.ServiceEntryFormViewModel
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -30,6 +34,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ServiceEntryFormViewModelTests {
+    @After
+    fun tearDown() {
+        DisplayPreferences.update(Preferences())
+    }
+
     private fun makeViewModel(
         mode: ServiceEntryFormViewModel.Mode = ServiceEntryFormViewModel.Mode.Create(testVehicleId),
         repository: InMemoryServiceRepository = InMemoryServiceRepository(),
@@ -122,5 +131,29 @@ class ServiceEntryFormViewModelTests {
     fun `the form shows the reading right before its date`() {
         assertNull(makeViewModel().previousReading)
         assertEquals(1_000.0, makeViewModel(otherReadings = listOf(sample(10, 1_000.0), sample(60, 2_000.0))).previousReading)
+    }
+
+    @Test
+    fun `miles typed by the user are stored as kilometers`() =
+        runTest {
+            DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+            val repository = InMemoryServiceRepository()
+            val viewModel = makeViewModel(repository = repository)
+            viewModel.odometer = NumberInput.text(100.0, NumberInput.Style.KILOMETERS)
+
+            viewModel.save()
+
+            val saved = repository.entries(testVehicleId).first()
+            assertEquals(160.9344, saved.odometer, 0.001)
+        }
+
+    @Test
+    fun `editing under the imperial system round trips the stored odometer`() {
+        DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+        val existing = service(10, 160.9344, decimal("200"))
+
+        val viewModel = makeViewModel(ServiceEntryFormViewModel.Mode.Edit(existing))
+
+        assertEquals(160.9344, viewModel.parsedOdometer!!, 0.001)
     }
 }

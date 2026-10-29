@@ -8,12 +8,14 @@ import br.com.joaoduartemariucio.rodaro.data.common.repositories.persisting
 import br.com.joaoduartemariucio.rodaro.data.database.RodaroDatabase
 import br.com.joaoduartemariucio.rodaro.data.fueling.repositories.RoomFuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.data.maintenance.repositories.RoomServiceRepository
+import br.com.joaoduartemariucio.rodaro.data.trips.repositories.RoomRouteRepository
 import br.com.joaoduartemariucio.rodaro.data.vehicles.repositories.RoomVehicleRepository
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
 import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import kotlinx.coroutines.test.runTest
@@ -35,6 +37,7 @@ class RoomRepositoriesTests {
     private val vehicles = RoomVehicleRepository(database.vehicles())
     private val fuel = RoomFuelEntryRepository(database.fuelEntries(), database.vehicles())
     private val services = RoomServiceRepository(database.services(), database.vehicles())
+    private val routes = RoomRouteRepository(database.tripRoutes())
 
     private val gol =
         Vehicle(name = "Gol", kind = VehicleKind.CAR, plate = "ABC1D23", initialOdometer = 1_000.0, tankCapacity = 55.0, createdAt = day(0))
@@ -167,4 +170,42 @@ class RoomRepositoriesTests {
             val missing = RepositoryError.EntryNotFound(UUID.randomUUID())
             assertEquals(missing, assertFailsWith<RepositoryError> { persisting { throw missing } })
         }
+
+    @Test
+    fun `saved routes round-trip newest first, filter by vehicle and can be deleted`() =
+        runTest {
+            val earlier = savedRoute("São Paulo", "Rio de Janeiro", day(1))
+            val later = savedRoute("Curitiba", "Paranaguá", day(5))
+            routes.save(earlier)
+            routes.save(later)
+
+            assertEquals(listOf(later, earlier), routes.routes())
+            assertEquals(listOf(later), routes.routes(vehicleId = later.vehicleId).filter { it.id == later.id })
+            assertEquals(emptyList(), routes.routes(vehicleId = UUID.randomUUID()))
+            assertDecimal("0.5", routes.routes().last().costPerKilometer)
+
+            routes.save(earlier.copy(hasTolls = false))
+            assertEquals(false, routes.routes().last().hasTolls)
+
+            routes.delete(earlier.id)
+            assertEquals(listOf(later.id), routes.routes().map { it.id })
+        }
+
+    private fun savedRoute(
+        origin: String,
+        destination: String,
+        createdAt: java.time.Instant,
+    ) = SavedRoute(
+        id = UUID.randomUUID(),
+        vehicleId = gol.id,
+        origin = origin,
+        destination = destination,
+        distanceKm = 100.0,
+        isRoundTrip = true,
+        hasTolls = true,
+        liters = 20.0,
+        fuelCost = BigDecimal("100"),
+        costPerKilometer = BigDecimal("0.5"),
+        createdAt = createdAt,
+    )
 }

@@ -19,4 +19,11 @@ class FirebaseAnalyticsTracker(
             ),
         )
     }
+
+    override fun event(
+        name: String,
+        parameters: Map<String, String>,
+    ) {
+        analytics.logEvent(name, bundleOf(*parameters.map { (key, value) -> key to value }.toTypedArray()))
+    }
 }

@@ -4,14 +4,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.AccountError
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Account
 import br.com.joaoduartemariucio.rodaro.domain.common.services.AccountService
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import kotlin.coroutines.cancellation.CancellationException
 
 class ProfileViewModel(
     private val accountService: AccountService,
     private val clearLocalData: suspend () -> Unit,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     sealed interface DeleteState {
         data object Idle : DeleteState
@@ -48,6 +51,7 @@ class ProfileViewModel(
         error = null
         try {
             accountService.signOut()
+            analytics.event("account_signed_out")
         } catch (failure: Exception) {
             if (failure is CancellationException) throw failure
             error = failure
@@ -90,7 +94,9 @@ class ProfileViewModel(
             clearLocalData()
             refresh()
             deleteState = DeleteState.Done
+            analytics.event("account_deleted")
         } catch (recentLogin: AccountError.RecentLoginRequired) {
+            analytics.event("account_delete_reauth_required")
             deleteState =
                 if (account?.provider == Account.Provider.GOOGLE) {
                     DeleteState.NeedsGoogle

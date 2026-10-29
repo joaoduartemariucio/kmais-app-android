@@ -7,6 +7,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.data.preferences.PreferenceGate
 import br.com.joaoduartemariucio.rodaro.data.reminders.services.NotificationPermission
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -15,6 +16,7 @@ class PushMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) = Unit
 
     override fun onMessageReceived(message: RemoteMessage) {
+        if (!PreferenceGate.preferences(this).pushEnabled) return
         val title = message.notification?.title ?: message.data[KEY_TITLE] ?: return
         val body = message.notification?.body ?: message.data[KEY_BODY]
         if (!NotificationPermission(this).isGranted) return

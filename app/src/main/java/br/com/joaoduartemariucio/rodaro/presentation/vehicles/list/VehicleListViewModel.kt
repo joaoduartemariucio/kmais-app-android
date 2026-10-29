@@ -4,7 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
 import br.com.joaoduartemariucio.rodaro.domain.common.calculations.sum
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.calculations.MaintenanceStatus
@@ -24,6 +26,7 @@ class VehicleListViewModel(
     private val serviceRepository: ServiceRepository,
     private val dateProvider: DateProvider,
     private val reminders: ServiceReminderSync? = null,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     enum class Scope {
         ACTIVE,
@@ -109,6 +112,7 @@ class VehicleListViewModel(
     ) {
         try {
             vehicleRepository.setArchived(isArchived, vehicle.id)
+            analytics.event(if (isArchived) "vehicle_archived" else "vehicle_restored")
             load()
         } catch (error: CancellationException) {
             throw error

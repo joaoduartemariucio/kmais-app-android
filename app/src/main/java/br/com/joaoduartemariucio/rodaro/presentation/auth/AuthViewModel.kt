@@ -4,12 +4,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.AccountError
 import br.com.joaoduartemariucio.rodaro.domain.common.services.AccountService
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import kotlin.coroutines.cancellation.CancellationException
 
 class AuthViewModel(
     private val accountService: AccountService,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     enum class Mode {
         SignIn,
@@ -63,12 +66,24 @@ class AuthViewModel(
                 } else {
                     accountService.createAccount(email.trim(), password)
                 }
+                analytics.event(
+                    if (mode == Mode.SignIn) "auth_signed_in" else "auth_account_created",
+                    mapOf("method" to "email_password"),
+                )
             }
         } else {
             false
         }
 
-    suspend fun submitWithGoogle(): Boolean = if (working) false else perform { accountService.signInWithGoogle() }
+    suspend fun submitWithGoogle(): Boolean =
+        if (working) {
+            false
+        } else {
+            perform {
+                accountService.signInWithGoogle()
+                analytics.event("auth_signed_in", mapOf("method" to "google"))
+            }
+        }
 
     fun switchMode() {
         mode = if (mode == Mode.SignIn) Mode.CreateAccount else Mode.SignIn

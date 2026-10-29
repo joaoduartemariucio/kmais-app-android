@@ -11,14 +11,18 @@ import br.com.joaoduartemariucio.rodaro.calculations.service
 import br.com.joaoduartemariucio.rodaro.calculations.testVehicleId
 import br.com.joaoduartemariucio.rodaro.calculations.utc
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.UnitSystem
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.OdometerSample
 import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryFuelEntryRepository
+import br.com.joaoduartemariucio.rodaro.presentation.common.DisplayPreferences
 import br.com.joaoduartemariucio.rodaro.presentation.common.FormState
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
 import br.com.joaoduartemariucio.rodaro.presentation.fueling.form.FuelEntryFormViewModel
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -28,6 +32,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FuelEntryFormViewModelTests {
+    @After
+    fun tearDown() {
+        DisplayPreferences.update(Preferences())
+    }
+
     private fun makeViewModel(
         mode: FuelEntryFormViewModel.Mode = FuelEntryFormViewModel.Mode.Create(testVehicleId),
         repository: InMemoryFuelEntryRepository = InMemoryFuelEntryRepository(),
@@ -177,5 +186,35 @@ class FuelEntryFormViewModelTests {
 
         viewModel.odometer = NumberInput.text(900.0, NumberInput.Style.KILOMETERS)
         assertNull(viewModel.distanceSincePrevious)
+    }
+
+    @Test
+    fun `imperial input is converted back to liters and kilometers when saving`() =
+        runTest {
+            DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+            val repository = InMemoryFuelEntryRepository()
+            val viewModel = makeViewModel(repository = repository)
+            viewModel.odometer = NumberInput.text(100.0, NumberInput.Style.KILOMETERS)
+            viewModel.liters = NumberInput.text(10.0, NumberInput.Style.LITERS)
+            viewModel.pricePerLiter = NumberInput.text(BigDecimal(4), NumberInput.Style.FUEL_PRICE)
+
+            viewModel.save()
+
+            val saved = repository.entries(testVehicleId).first()
+            assertEquals(160.9344, saved.odometer, 0.001)
+            assertEquals(37.85411784, saved.liters, 0.001)
+            assertEquals(4.0 / 3.785411784, saved.pricePerLiter.toDouble(), 0.000_001)
+        }
+
+    @Test
+    fun `editing in the imperial system shows miles, gallons and price per gallon`() {
+        DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+        val existing = full(10, 160.9344, 37.85411784, price = BigDecimal(4))
+
+        val viewModel = makeViewModel(FuelEntryFormViewModel.Mode.Edit(existing))
+
+        assertEquals(160.9344, viewModel.parsedOdometer!!, 0.001)
+        assertEquals(37.85411784, viewModel.parsedLiters!!, 0.001)
+        assertEquals(4.0, viewModel.parsedPrice!!.toDouble(), 0.001)
     }
 }

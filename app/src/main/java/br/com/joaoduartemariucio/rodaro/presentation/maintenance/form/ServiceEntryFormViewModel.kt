@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
@@ -12,6 +14,7 @@ import br.com.joaoduartemariucio.rodaro.domain.vehicles.calculations.Odometer
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.OdometerSample
 import br.com.joaoduartemariucio.rodaro.presentation.common.FormState
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
+import br.com.joaoduartemariucio.rodaro.presentation.common.UnitConversion
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
 import br.com.joaoduartemariucio.rodaro.presentation.common.blocksSaving
 import java.math.BigDecimal
@@ -24,6 +27,7 @@ class ServiceEntryFormViewModel(
     private val repository: ServiceRepository,
     dateProvider: DateProvider,
     private val otherReadings: List<OdometerSample>,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     sealed interface Mode {
         data class Create(
@@ -37,14 +41,21 @@ class ServiceEntryFormViewModel(
 
     var kind by mutableStateOf(if (mode is Mode.Edit) mode.entry.kind else ServiceKind.OIL_CHANGE)
     var date: Instant by mutableStateOf(if (mode is Mode.Edit) mode.entry.date else dateProvider.now)
-    var odometer by mutableStateOf(if (mode is Mode.Edit) NumberInput.text(mode.entry.odometer, NumberInput.Style.KILOMETERS) else "")
+    var odometer by mutableStateOf(
+        if (mode is Mode.Edit) {
+            NumberInput.text(UnitConversion.distance(mode.entry.odometer), NumberInput.Style.KILOMETERS)
+        } else {
+            ""
+        },
+    )
     var cost by mutableStateOf(if (mode is Mode.Edit) NumberInput.text(mode.entry.cost, NumberInput.Style.MONEY) else "")
     var notes by mutableStateOf(if (mode is Mode.Edit) mode.entry.notes else "")
 
     var state: FormState by mutableStateOf(FormState.Editing)
         private set
 
-    val parsedOdometer: Double? get() = NumberInput.double(odometer, NumberInput.Style.KILOMETERS)
+    val parsedOdometer: Double?
+        get() = NumberInput.double(odometer, NumberInput.Style.KILOMETERS)?.let(UnitConversion::distanceToKilometers)
 
     val previousReading: Double? get() = Odometer.neighbors(date, otherReadings).previous
 
@@ -67,6 +78,13 @@ class ServiceEntryFormViewModel(
         state =
             try {
                 repository.save(entry(odometer))
+                analytics.event(
+                    "service_saved",
+                    mapOf(
+                        "mode" to if (mode is Mode.Create) "create" else "edit",
+                        "kind" to kind.name,
+                    ),
+                )
                 FormState.Saved
             } catch (error: CancellationException) {
                 throw error

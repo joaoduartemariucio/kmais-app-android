@@ -25,6 +25,16 @@ jobs:
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
 
+      - name: Restore ORS API key in local.properties
+        env:
+          OPEN_ROUTE_API_KEY: ${{ secrets.OPEN_ROUTE_API_KEY }}
+        run: |
+          if [ -n "$OPEN_ROUTE_API_KEY" ]; then
+            printf '\nors.api.key=%s\n' "$OPEN_ROUTE_API_KEY" >> local.properties
+          else
+            echo "OPEN_ROUTE_API_KEY not set; route lookup will stay disabled in CI builds."
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -63,6 +73,16 @@ jobs:
             exit 1
           fi
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
+      - name: Restore ORS API key in local.properties
+        env:
+          OPEN_ROUTE_API_KEY: ${{ secrets.OPEN_ROUTE_API_KEY }}
+        run: |
+          if [ -n "$OPEN_ROUTE_API_KEY" ]; then
+            printf '\nors.api.key=%s\n' "$OPEN_ROUTE_API_KEY" >> local.properties
+          else
+            echo "OPEN_ROUTE_API_KEY not set; route lookup will stay disabled in CI builds."
+          fi
 
       - uses: actions/setup-java@v4
         with:

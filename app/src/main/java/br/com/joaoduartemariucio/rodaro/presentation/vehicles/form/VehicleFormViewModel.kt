@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
@@ -14,6 +16,7 @@ import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
 import br.com.joaoduartemariucio.rodaro.presentation.common.FormState
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
+import br.com.joaoduartemariucio.rodaro.presentation.common.UnitConversion
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
 import br.com.joaoduartemariucio.rodaro.presentation.common.blocksSaving
 import java.util.UUID
@@ -25,6 +28,7 @@ class VehicleFormViewModel(
     private val vehicleRepository: VehicleRepository,
     private val serviceRepository: ServiceRepository,
     private val dateProvider: DateProvider,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     class RuleDraft(
         val id: UUID = UUID.randomUUID(),
@@ -39,12 +43,23 @@ class VehicleFormViewModel(
         constructor(rule: ServiceRule) : this(
             id = rule.id,
             kind = rule.kind,
-            kilometerInterval = NumberInput.text(rule.kilometerInterval, NumberInput.Style.KILOMETERS),
+            kilometerInterval =
+                rule.kilometerInterval
+                    ?.let {
+                        NumberInput.text(
+                            UnitConversion.distance(it),
+                            NumberInput.Style.KILOMETERS,
+                        )
+                    }.orEmpty(),
             monthInterval = NumberInput.text(rule.monthInterval?.toBigDecimal(), NumberInput.Style.MONTHS),
         )
 
         val parsedKilometerInterval: Double?
-            get() = NumberInput.double(kilometerInterval, NumberInput.Style.KILOMETERS)?.takeIf { it > 0 }
+            get() =
+                NumberInput.double(kilometerInterval, NumberInput.Style.KILOMETERS)?.let(UnitConversion::distanceToKilometers)?.takeIf {
+                    it >
+                        0
+                }
 
         val parsedMonthInterval: Int?
             get() = NumberInput.double(monthInterval, NumberInput.Style.MONTHS)?.takeIf { it > 0 }?.toInt()
@@ -82,8 +97,8 @@ class VehicleFormViewModel(
             name = vehicle.name
             kind = vehicle.kind
             plate = vehicle.plate.orEmpty()
-            initialOdometer = NumberInput.text(vehicle.initialOdometer, NumberInput.Style.KILOMETERS)
-            tankCapacity = NumberInput.text(vehicle.tankCapacity, NumberInput.Style.LITERS)
+            initialOdometer = NumberInput.text(UnitConversion.distance(vehicle.initialOdometer), NumberInput.Style.KILOMETERS)
+            tankCapacity = NumberInput.text(vehicle.tankCapacity?.let(UnitConversion::volume), NumberInput.Style.LITERS)
         }
         rules.addAll(existingRules.sortedBy { it.kind.rawValue }.map(::RuleDraft))
     }
@@ -92,9 +107,11 @@ class VehicleFormViewModel(
 
     val parsedPlate: String? get() = plate.trim().takeIf { it.isNotEmpty() }?.uppercase()
 
-    val parsedInitialOdometer: Double get() = NumberInput.double(initialOdometer, NumberInput.Style.KILOMETERS) ?: 0.0
+    val parsedInitialOdometer: Double
+        get() = NumberInput.double(initialOdometer, NumberInput.Style.KILOMETERS)?.let(UnitConversion::distanceToKilometers) ?: 0.0
 
-    val parsedTankCapacity: Double? get() = NumberInput.double(tankCapacity, NumberInput.Style.LITERS)
+    val parsedTankCapacity: Double?
+        get() = NumberInput.double(tankCapacity, NumberInput.Style.LITERS)?.let(UnitConversion::volumeToLiters)
 
     val issues: List<ValidationIssue>
         get() =
@@ -132,6 +149,10 @@ class VehicleFormViewModel(
                         )
                     },
                     vehicle.id,
+                )
+                analytics.event(
+                    if (mode is Mode.Create) "vehicle_created" else "vehicle_edited",
+                    mapOf("kind" to kind.name, "rules" to rules.size.toString()),
                 )
                 FormState.Saved
             } catch (error: CancellationException) {

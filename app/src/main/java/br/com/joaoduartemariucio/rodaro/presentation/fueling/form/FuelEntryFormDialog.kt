@@ -40,7 +40,11 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.SectionFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.ads.InterstitialAds
+import br.com.joaoduartemariucio.rodaro.presentation.common.distanceUnit
 import br.com.joaoduartemariucio.rodaro.presentation.common.formattedCurrency
+import br.com.joaoduartemariucio.rodaro.presentation.common.volumePriceTitle
+import br.com.joaoduartemariucio.rodaro.presentation.common.volumeTitle
+import br.com.joaoduartemariucio.rodaro.presentation.common.volumeUnit
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
@@ -61,6 +65,7 @@ fun FuelEntryFormDialog(
                 dateProvider = dependencies.dateProvider,
                 otherReadings = otherReadings,
                 suggestedPrice = suggestedPrice,
+                analytics = dependencies.analytics,
             )
         }
     val coroutines = rememberCoroutineScope()
@@ -108,15 +113,15 @@ fun FuelEntryFormDialog(
             SectionHeader(stringResource(R.string.fuel))
             SectionCard {
                 LabeledNumberField(
-                    title = stringResource(R.string.liters),
-                    unit = stringResource(R.string.unit_liters),
+                    title = volumeTitle(),
+                    unit = volumeUnit(),
                     style = NumberInput.Style.LITERS,
                     text = viewModel.liters,
                     onTextChange = { viewModel.liters = it },
                 )
                 SectionDivider()
                 LabeledNumberField(
-                    title = stringResource(R.string.price_per_liter),
+                    title = volumePriceTitle(),
                     style = NumberInput.Style.FUEL_PRICE,
                     text = viewModel.pricePerLiter,
                     onTextChange = { viewModel.pricePerLiter = it },
@@ -150,7 +155,7 @@ fun FuelEntryFormDialog(
                 SectionDivider()
                 LabeledNumberField(
                     title = stringResource(R.string.odometer),
-                    unit = stringResource(R.string.unit_km),
+                    unit = distanceUnit(),
                     style = NumberInput.Style.KILOMETERS,
                     text = viewModel.odometer,
                     onTextChange = { viewModel.odometer = it },

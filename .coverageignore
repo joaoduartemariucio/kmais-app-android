@@ -27,6 +27,7 @@ app/src/main/java/*/presentation/theme/*
 # Android glue: keyboard dismissal and the Resources-backed Localizer
 app/src/main/java/*/presentation/common/KeyboardDismissal.kt
 app/src/main/java/*/presentation/common/Localizer.kt
+app/src/main/java/*/presentation/common/UnitLabels.kt
 
 # Fixtures for Compose previews and the debug seeder
 app/src/main/java/*/data/PreviewData.kt

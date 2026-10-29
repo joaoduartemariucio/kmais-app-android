@@ -38,9 +38,11 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.SectionFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.ads.InterstitialAds
+import br.com.joaoduartemariucio.rodaro.presentation.common.distanceUnit
 import br.com.joaoduartemariucio.rodaro.presentation.common.icon
 import br.com.joaoduartemariucio.rodaro.presentation.common.keepsKeyboard
 import br.com.joaoduartemariucio.rodaro.presentation.common.label
+import br.com.joaoduartemariucio.rodaro.presentation.common.volumeUnit
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.form.components.ServiceRuleRow
 import kotlinx.coroutines.launch
 
@@ -60,6 +62,7 @@ fun VehicleFormDialog(
                 vehicleRepository = dependencies.vehicleRepository,
                 serviceRepository = dependencies.serviceRepository,
                 dateProvider = dependencies.dateProvider,
+                analytics = dependencies.analytics,
             )
         }
     val coroutines = rememberCoroutineScope()
@@ -131,7 +134,7 @@ fun VehicleFormDialog(
             SectionCard {
                 LabeledNumberField(
                     title = stringResource(R.string.initial_odometer),
-                    unit = stringResource(R.string.unit_km),
+                    unit = distanceUnit(),
                     style = NumberInput.Style.KILOMETERS,
                     text = viewModel.initialOdometer,
                     onTextChange = { viewModel.initialOdometer = it },
@@ -139,7 +142,7 @@ fun VehicleFormDialog(
                 SectionDivider()
                 LabeledNumberField(
                     title = stringResource(R.string.tank_capacity),
-                    unit = stringResource(R.string.unit_liters),
+                    unit = volumeUnit(),
                     style = NumberInput.Style.LITERS,
                     text = viewModel.tankCapacity,
                     onTextChange = { viewModel.tankCapacity = it },

@@ -131,6 +131,50 @@ The app targets the newest platform only, like the iOS app targets iOS 26.5.
   per-app languages.
 - **Revisit when:** the app is published to people on older phones.
 
+## Preferences
+
+### Currency changes the format, never the value
+
+Rodaro is offline: the preferred currency (`CurrencyOption`) only changes the symbol and
+formatting applied by `Formats.currency`. No exchange rate is fetched, stored or implied, and
+the Preferences screen states so next to the picker (`pref_currency_note`). Values keep being
+stored exactly as entered — converting them would need a network the app does not have and
+would silently rewrite the user's history.
+
+### Units are canonically metric, imperial only at the edges
+
+Everything in Domain and Room stays in km, liters, km/L and cost/km. The preferred unit system
+(`UnitSystem`) converts in exactly two places: the `formattedX` extensions in `FormatStyles.kt`
+for display, and the four form ViewModels (`FuelEntryFormViewModel`, `VehicleFormViewModel`,
+`ServiceEntryFormViewModel`, `TripCostViewModel`) which convert what the user types back to
+metric before validating or saving. `presentation/common/DisplayPreferences.kt` holds the
+preference as Compose state so the ~40 display call sites need no per-file changes. Validation,
+Room and every calculation therefore keep seeing one unit system only.
+
+### Preferences live in SharedPreferences, not Room
+
+`Preferences` is five scalars, read at start-up, by `PushMessagingService` and by
+`ReminderWorker` — types the system instantiates outside any screen. A SharedPreferences file
+(`data/preferences/SharedPreferencesPreferencesRepository`) is the idiomatic home for settings,
+adds no schema migration, and `data/preferences/PreferenceGate` lets those system-instantiated
+types read it from a plain `Context` without a repository or a coroutine graph.
+
+### Two independent notification switches
+
+"Push" (`pushEnabled`) gates the remote FCM channel (`PushMessagingService` drops messages when
+off) and "Maintenance reminders" (`remindersEnabled`) gates local WorkManager jobs
+(`ServiceReminderSync` cancels every pending reminder and `ReminderWorker` returns early when
+off). One combined switch would force users who want local oil-change alerts to also accept
+marketing push, or the opposite.
+
+### Android: the app language goes through the platform `LocaleManager`
+
+With `minSdk = 36`, `LocaleManager.setApplicationLocales` is the native per-app language API:
+the system persists the choice, recreates the Activity and updates the resources, so the app
+keeps no duplicate language state. `LanguageOption.SYSTEM` clears the override with an empty
+`LocaleList`. AppCompat's `AppCompatDelegate.setApplicationLocales` would add a dependency only
+to support older Android versions this app does not have.
+
 ## Data entry
 
 ### Odometer out of order is a warning, not an error
@@ -485,6 +529,68 @@ the stacked monthly bars with `Canvas` and `TextMeasurer`.
 Each SF Symbol maps to the closest Material icon (`OilBarrel` for oil, `TireRepair` for tires,
 `TwoWheeler` for motorcycles, …). Air and fuel filters, which share a symbol on iOS, get
 different icons because Material has a filter icon.
+
+## Analytics
+
+### Every action and navigation is instrumented
+
+The goal is to know exactly what a user does. `domain/common/services/Analytics` exposes two
+methods — `screen(name)` for navigation and `event(name, parameters)` for actions — and every
+ViewModel that performs a user action takes an `analytics: Analytics` parameter defaulted to
+`NoAnalytics`, so existing tests and previews are untouched. The composition root
+(`AppDependencies`) injects the Firebase implementation (`FirebaseAnalyticsTracker`).
+
+- **Screens:** `AppNavHost` logs one `screen_view` per top-of-stack route, so navigation needs
+  no per-screen code.
+- **Actions:** each mutating ViewModel logs after the write succeeds — `fuel_up_saved`,
+  `service_saved`, `vehicle_created`/`vehicle_edited`, `vehicle_archived`/`vehicle_restored`,
+  `timeline_entry_deleted`, `route_calculated`/`route_vehicle_selected`,
+  `route_distance_looked_up`/`route_saved`/`route_deleted`,
+  `preference_changed`, `auth_signed_in`/`auth_account_created`, `account_signed_out`,
+  `account_deleted`. Parameters stay small (`mode`, `kind`, `round_trip`, the changed
+  preference `key`) and never carry values, odometer readings, e-mail or the typed places,
+  so no personal or vehicle data leaves the device.
+- **Why a Domain interface:** Presentation must not reach for Firebase directly (the layer
+  rules forbid `data` types in `presentation`), and the no-op default keeps unit tests free of
+  a mocking framework. Events are emitted only on the success path, so a failed save is not
+  counted as an action.
+
+## Routes and networking
+
+### Real distance and tolls come from OpenRouteService
+
+The route tab looks up the real distance between an origin and a destination, and tells
+whether the road has tolls. The provider is the free
+[OpenRouteService](https://openrouteservice.org) (HeiGIT, built on OpenStreetMap data):
+
+- Geocoding by place name: `GET /geocode/search`, which answers a GeoJSON feature list; the
+  first feature's coordinates feed the route.
+- Driving route: `POST /v2/directions/driving-car` with `extra_info: ["tollways"]`, which
+  answers `summary.distance` (m) and `summary.duration` (s), plus a `tollways` extra whose
+  summary carries a 0/1 value per road segment — any 1 means the route crosses a tollway.
+- A free API key (from `openrouteservice.org/dev`) is read from `local.properties`
+  (`ors.api.key`), injected as `BuildConfig.ORS_API_KEY` and sent as the `Authorization`
+  header. Without a key the app degrades gracefully: the lookup button explains that a key
+  is missing and nothing else breaks.
+- **Why ORS:** it is the free routing API with an explicit toll flag; Google's equivalent
+  needs billing, and OSRM-class servers have no toll data at all.
+- **Why behind a Domain interface:** `RouteEstimateProvider` lives in Domain, so the
+  concrete provider (Retrofit + kotlinx-serialization, `data/network`) can be swapped —
+  another API, a paid tier, an offline cache — without touching Presentation.
+
+### Saved calculations are Room rows with a snapshot
+
+`TripCostScreen` can save a calculation. The saved route stores the typed origin and
+destination, the one-way distance, the round-trip flag, the toll flag and a snapshot of the
+result (liters, fuel cost, cost per kilometer) with the vehicle and the date.
+
+- **Why a snapshot instead of a reference:** consumption and fuel price change with every
+  fuel-up; a saved trip is a record of what the user calculated that day, not a live
+  recalculation.
+- The new `trip_routes` table bumps the database to version 2 with a `MIGRATION_1_2` that
+  only creates the table, and `RodaroDatabaseMigrationTests` runs that migration against a
+  real version-1 database (recreated from the exported `1.json` schema) and checks the old
+  data survives.
 
 ## Tooling
 

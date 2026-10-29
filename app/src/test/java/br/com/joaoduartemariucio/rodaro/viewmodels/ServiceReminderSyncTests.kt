@@ -10,12 +10,14 @@ import br.com.joaoduartemariucio.rodaro.domain.maintenance.calculations.Maintena
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.calculations.ServiceDue
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
 import br.com.joaoduartemariucio.rodaro.domain.reminders.calculations.PlannedReminder
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.Reminder
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.fakes.FakeReminderScheduler
 import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryFuelEntryRepository
+import br.com.joaoduartemariucio.rodaro.fakes.InMemoryPreferencesRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryVehicleRepository
 import br.com.joaoduartemariucio.rodaro.fakes.TestLocalizer
@@ -41,6 +43,7 @@ class ServiceReminderSyncTests {
         rules: List<ServiceRule> = listOf(oilRule),
         scheduler: FakeReminderScheduler = FakeReminderScheduler(),
         vehicleFailure: Exception? = null,
+        preferences: InMemoryPreferencesRepository = InMemoryPreferencesRepository(),
     ) = ServiceReminderSync(
         vehicleRepository = InMemoryVehicleRepository(vehicles, vehicleFailure),
         fuelEntryRepository = InMemoryFuelEntryRepository(),
@@ -48,9 +51,22 @@ class ServiceReminderSyncTests {
         scheduler = scheduler,
         dateProvider = FixedDateProvider(day(1)),
         localizer = TestLocalizer(),
+        preferences = preferences,
     )
 
     private fun stale(id: UUID = UUID.randomUUID()) = Reminder(id, "old", "old", day(2))
+
+    @Test
+    fun `cancels everything and stops when reminders are disabled`() =
+        runTest {
+            val scheduler = FakeReminderScheduler(pending = listOf(stale()))
+            val preferences = InMemoryPreferencesRepository(stored = Preferences(remindersEnabled = false))
+
+            makeSync(scheduler = scheduler, preferences = preferences).sync()
+
+            assertTrue(scheduler.scheduled.isEmpty())
+            assertEquals(0, scheduler.authorizationRequests)
+        }
 
     @Test
     fun `schedules one reminder per rule with a known due date`() =

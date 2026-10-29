@@ -18,7 +18,7 @@ class ProfileViewModelTests {
 
     private fun googleAccount() = Account(id = "google-id", email = "driver@gmail.com", displayName = "Driver", provider = Account.Provider.GOOGLE)
 
-    private fun makeViewModel(service: FakeAccountService = FakeAccountService()) = ProfileViewModel(service) { cleared++ }
+    private fun makeViewModel(service: FakeAccountService = FakeAccountService()) = ProfileViewModel(service, clearLocalData = { cleared++ })
 
     @Test
     fun `loads the signed in account`() =

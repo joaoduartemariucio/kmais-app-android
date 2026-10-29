@@ -2,14 +2,21 @@ package br.com.joaoduartemariucio.rodaro.fakes
 
 import br.com.joaoduartemariucio.rodaro.domain.common.entities.sortedChronologically
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.repositories.ServiceRepository
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.Reminder
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.ReminderScheduler
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RouteEstimate
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
+import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
+import br.com.joaoduartemariucio.rodaro.domain.trips.services.RouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
 import java.time.Instant
@@ -119,6 +126,25 @@ class FixedDateProvider(
     override val zone: ZoneId = ZoneOffset.UTC,
 ) : DateProvider
 
+class InMemoryPreferencesRepository(
+    var stored: Preferences = Preferences(),
+    var failure: Exception? = null,
+) : PreferencesRepository {
+    var saves = 0
+        private set
+
+    override suspend fun get(): Preferences {
+        failure?.let { throw it }
+        return stored
+    }
+
+    override suspend fun save(preferences: Preferences) {
+        failure?.let { throw it }
+        stored = preferences
+        saves += 1
+    }
+}
+
 class FakeReminderScheduler(
     pending: List<Reminder> = emptyList(),
     private val isAuthorized: Boolean = true,
@@ -141,4 +167,61 @@ class FakeReminderScheduler(
     }
 
     override suspend fun pendingIdentifiers(): List<UUID> = scheduled.keys.toList()
+}
+
+class FakeAnalytics : Analytics {
+    data class Recorded(
+        val name: String,
+        val parameters: Map<String, String>,
+    )
+
+    val events = mutableListOf<Recorded>()
+    val screens = mutableListOf<String>()
+
+    override fun screen(name: String) {
+        screens += name
+    }
+
+    override fun event(
+        name: String,
+        parameters: Map<String, String>,
+    ) {
+        events += Recorded(name, parameters)
+    }
+
+    fun names(): List<String> = events.map { it.name }
+
+    fun parameters(name: String): Map<String, String>? = events.lastOrNull { it.name == name }?.parameters
+}
+
+class FakeRouteEstimateProvider(
+    var estimate: RouteEstimate = RouteEstimate(distanceKm = 120.0, durationMinutes = 90, hasTolls = true),
+    var failure: Exception? = null,
+) : RouteEstimateProvider {
+    val lookups = mutableListOf<Pair<String, String>>()
+
+    override suspend fun estimate(
+        origin: String,
+        destination: String,
+    ): RouteEstimate {
+        failure?.let { throw it }
+        lookups += origin to destination
+        return estimate
+    }
+}
+
+class InMemoryRouteRepository(
+    routes: List<SavedRoute> = emptyList(),
+) : RouteRepository {
+    private val storage = routes.associateBy { it.id }.toMutableMap()
+
+    override suspend fun routes(vehicleId: UUID?): List<SavedRoute> = storage.values.filter { vehicleId == null || it.vehicleId == vehicleId }.sortedByDescending { it.createdAt }
+
+    override suspend fun save(route: SavedRoute) {
+        storage[route.id] = route
+    }
+
+    override suspend fun delete(id: UUID) {
+        storage.remove(id)
+    }
 }

@@ -26,6 +26,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.SectionFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.ads.InterstitialAds
+import br.com.joaoduartemariucio.rodaro.presentation.common.distanceUnit
 import br.com.joaoduartemariucio.rodaro.presentation.common.keepsKeyboard
 import br.com.joaoduartemariucio.rodaro.presentation.maintenance.form.components.ServiceKindGrid
 import kotlinx.coroutines.launch
@@ -45,6 +46,7 @@ fun ServiceEntryFormDialog(
                 repository = dependencies.serviceRepository,
                 dateProvider = dependencies.dateProvider,
                 otherReadings = otherReadings,
+                analytics = dependencies.analytics,
             )
         }
     val coroutines = rememberCoroutineScope()
@@ -76,7 +78,7 @@ fun ServiceEntryFormDialog(
                 SectionDivider()
                 LabeledNumberField(
                     title = stringResource(R.string.odometer),
-                    unit = stringResource(R.string.unit_km),
+                    unit = distanceUnit(),
                     style = NumberInput.Style.KILOMETERS,
                     text = viewModel.odometer,
                     onTextChange = { viewModel.odometer = it },

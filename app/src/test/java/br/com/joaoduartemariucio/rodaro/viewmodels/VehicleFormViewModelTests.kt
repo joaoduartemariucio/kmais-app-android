@@ -4,16 +4,20 @@ import br.com.joaoduartemariucio.rodaro.calculations.day
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.UnitSystem
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryVehicleRepository
+import br.com.joaoduartemariucio.rodaro.presentation.common.DisplayPreferences
 import br.com.joaoduartemariucio.rodaro.presentation.common.FormState
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.form.VehicleFormViewModel
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Test
 import java.math.BigDecimal
 import java.util.UUID
@@ -25,6 +29,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class VehicleFormViewModelTests {
+    @After
+    fun tearDown() {
+        DisplayPreferences.update(Preferences())
+    }
+
     private fun makeViewModel(
         mode: VehicleFormViewModel.Mode = VehicleFormViewModel.Mode.Create,
         existingRules: List<ServiceRule> = emptyList(),
@@ -154,4 +163,36 @@ class VehicleFormViewModelTests {
 
             assertIs<FormState.Failed>(viewModel.state)
         }
+
+    @Test
+    fun `imperial specs typed by the user are stored as kilometers and liters`() =
+        runTest {
+            DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+            val vehicles = InMemoryVehicleRepository()
+            val services = InMemoryServiceRepository()
+            val viewModel = makeViewModel(vehicleRepository = vehicles, serviceRepository = services)
+            viewModel.name = "F-150"
+            viewModel.initialOdometer = NumberInput.text(100.0, NumberInput.Style.KILOMETERS)
+            viewModel.tankCapacity = NumberInput.text(10.0, NumberInput.Style.LITERS)
+            viewModel.addRule()
+            viewModel.rules[0].kilometerInterval = NumberInput.text(621.0, NumberInput.Style.KILOMETERS)
+
+            viewModel.save()
+
+            val saved = assertNotNull(vehicles.all(includingArchived = true).firstOrNull())
+            assertEquals(160.9344, saved.initialOdometer, 0.001)
+            assertEquals(37.85411784, assertNotNull(saved.tankCapacity), 0.001)
+            assertEquals(999.402624, assertNotNull(services.rules(saved.id).first().kilometerInterval), 0.001)
+        }
+
+    @Test
+    fun `editing under the imperial system shows miles and gallons`() {
+        DisplayPreferences.update(Preferences(unitSystem = UnitSystem.IMPERIAL))
+        val vehicle = Vehicle(name = "Jetta", initialOdometer = 160.9344, tankCapacity = 37.85411784, createdAt = day(0))
+
+        val viewModel = makeViewModel(VehicleFormViewModel.Mode.Edit(vehicle))
+
+        assertEquals(160.9344, viewModel.parsedInitialOdometer, 0.001)
+        assertEquals(37.85411784, viewModel.parsedTankCapacity!!, 0.001)
+    }
 }

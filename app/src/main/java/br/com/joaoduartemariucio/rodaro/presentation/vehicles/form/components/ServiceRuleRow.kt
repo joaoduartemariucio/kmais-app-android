@@ -31,6 +31,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.Palette
 import br.com.joaoduartemariucio.rodaro.presentation.common.SymbolBadge
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
+import br.com.joaoduartemariucio.rodaro.presentation.common.distanceUnit
 import br.com.joaoduartemariucio.rodaro.presentation.common.icon
 import br.com.joaoduartemariucio.rodaro.presentation.common.label
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.form.VehicleFormViewModel
@@ -75,7 +76,7 @@ fun ServiceRuleRow(
         }
         LabeledNumberField(
             title = stringResource(R.string.every),
-            unit = stringResource(R.string.unit_km),
+            unit = distanceUnit(),
             style = NumberInput.Style.KILOMETERS,
             text = rule.kilometerInterval,
             onTextChange = { rule.kilometerInterval = it },

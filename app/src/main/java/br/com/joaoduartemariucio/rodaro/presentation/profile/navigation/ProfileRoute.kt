@@ -6,4 +6,6 @@ sealed interface ProfileRoute : Route {
     data object Profile : ProfileRoute
 
     data object Auth : ProfileRoute
+
+    data object Preferences : ProfileRoute
 }

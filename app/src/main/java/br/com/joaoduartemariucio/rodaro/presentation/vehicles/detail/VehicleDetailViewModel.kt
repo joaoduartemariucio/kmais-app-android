@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.joaoduartemariucio.rodaro.app.NoAnalytics
+import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
@@ -24,6 +26,7 @@ class VehicleDetailViewModel(
     private val serviceRepository: ServiceRepository,
     private val dateProvider: DateProvider,
     private val reminders: ServiceReminderSync? = null,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     sealed interface State {
         data object Loading : State
@@ -106,6 +109,10 @@ class VehicleDetailViewModel(
                 is VehicleTimeline.Item.Fuel -> fuelEntryRepository.delete(item.entry.id)
                 is VehicleTimeline.Item.Service -> serviceRepository.deleteEntry(item.entry.id)
             }
+            analytics.event(
+                "timeline_entry_deleted",
+                mapOf("kind" to if (item is VehicleTimeline.Item.Fuel) "fuel" else "service"),
+            )
             load()
         } catch (error: CancellationException) {
             throw error

@@ -9,6 +9,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.data.preferences.PreferenceGate
 
 class ReminderWorker(
     context: Context,
@@ -16,6 +17,7 @@ class ReminderWorker(
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         val id = inputData.getString(KEY_ID) ?: return Result.failure()
+        if (!PreferenceGate.preferences(applicationContext).remindersEnabled) return Result.success()
         if (!NotificationPermission(applicationContext).isGranted) return Result.success()
 
         val manager = NotificationManagerCompat.from(applicationContext)

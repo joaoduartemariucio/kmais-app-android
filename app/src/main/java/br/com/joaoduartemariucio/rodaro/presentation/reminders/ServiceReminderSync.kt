@@ -6,6 +6,7 @@ import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.calculations.MaintenanceForecast
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.repositories.ServiceRepository
+import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
 import br.com.joaoduartemariucio.rodaro.domain.reminders.calculations.PlannedReminder
 import br.com.joaoduartemariucio.rodaro.domain.reminders.calculations.ReminderPlan
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.Reminder
@@ -25,9 +26,15 @@ class ServiceReminderSync(
     private val scheduler: ReminderScheduler,
     private val dateProvider: DateProvider,
     private val localizer: Localizer,
+    private val preferences: PreferencesRepository,
 ) {
     suspend fun sync() {
         try {
+            if (!preferences.get().remindersEnabled) {
+                for (id in scheduler.pendingIdentifiers()) scheduler.cancel(id)
+                return
+            }
+
             val planned = ReminderPlan.reminders(records(), dateProvider.now, dateProvider.zone)
 
             val wanted = planned.map { it.id }.toSet()

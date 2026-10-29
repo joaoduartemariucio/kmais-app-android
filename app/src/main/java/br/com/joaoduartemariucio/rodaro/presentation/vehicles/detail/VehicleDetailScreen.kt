@@ -122,6 +122,7 @@ fun VehicleDetailScreen(
                 serviceRepository = dependencies.serviceRepository,
                 dateProvider = dependencies.dateProvider,
                 reminders = dependencies.reminderSync,
+                analytics = dependencies.analytics,
             )
         }
     val coroutines = rememberCoroutineScope()

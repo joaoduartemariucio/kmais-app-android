@@ -56,7 +56,7 @@ fun AuthScreen(
     onSignedIn: () -> Unit,
 ) {
     val dependencies = LocalDependencies.current
-    val viewModel = viewModel { AuthViewModel(dependencies.accountService) }
+    val viewModel = viewModel { AuthViewModel(dependencies.accountService, dependencies.analytics) }
     val coroutines = rememberCoroutineScope()
     val localizer = rememberLocalizer()
     var emailTouched by remember { mutableStateOf(false) }

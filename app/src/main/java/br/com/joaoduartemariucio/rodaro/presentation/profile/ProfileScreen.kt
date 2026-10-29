@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -16,7 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,10 +72,13 @@ private const val PRIVACY_URL = "https://rodaro.web.app/privacidade"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onSignIn: () -> Unit) {
+fun ProfileScreen(
+    onSignIn: () -> Unit,
+    onPreferences: () -> Unit,
+) {
     val context = LocalContext.current
     val dependencies = LocalDependencies.current
-    val viewModel = viewModel { ProfileViewModel(dependencies.accountService, dependencies.clearLocalData) }
+    val viewModel = viewModel { ProfileViewModel(dependencies.accountService, dependencies.clearLocalData, dependencies.analytics) }
     val coroutines = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     val version =
@@ -150,6 +156,8 @@ fun ProfileScreen(onSignIn: () -> Unit) {
             }
 
             AccountSection(viewModel, onSignIn)
+
+            PreferencesSection(onPreferences)
 
             if (viewModel.deleteState == ProfileViewModel.DeleteState.Working) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
@@ -319,6 +327,28 @@ private fun AccountSection(
                     Text(stringResource(R.string.sign_out))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PreferencesSection(onClick: () -> Unit) {
+    SectionCard {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 8.dp)
+                .heightIn(min = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text(
+                stringResource(R.string.preferences),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
