@@ -15,3 +15,10 @@ local.properties
 
 # Local CI output (make build/test/coverage)
 app/build/
+
+# Firebase CLI cache
+.firebase/
+
+# Firebase config with the API key: never commit it to this public repo.
+# CI restores it from the GOOGLE_SERVICES_JSON secret.
+app/google-services.json

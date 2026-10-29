@@ -8,6 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import br.com.joaoduartemariucio.rodaro.app.navigation.AppNavHost
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.AppOpenAds
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.CurrentActivity
 import br.com.joaoduartemariucio.rodaro.presentation.theme.RodaroTheme
 import kotlinx.coroutines.CompletableDeferred
 
@@ -34,6 +36,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        CurrentActivity.onResumed(this)
+        AppOpenAds.onActivityResumed(this)
+    }
+
+    override fun onPause() {
+        AppOpenAds.onActivityPaused()
+        CurrentActivity.onPaused(this)
+        super.onPause()
     }
 
     override fun onDestroy() {

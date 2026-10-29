@@ -25,6 +25,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.SectionDivider
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.InterstitialAds
 import br.com.joaoduartemariucio.rodaro.presentation.common.keepsKeyboard
 import br.com.joaoduartemariucio.rodaro.presentation.maintenance.form.components.ServiceKindGrid
 import kotlinx.coroutines.launch
@@ -56,6 +57,7 @@ fun ServiceEntryFormDialog(
             coroutines.launch {
                 viewModel.save()
                 if (viewModel.state == FormState.Saved) {
+                    InterstitialAds.show()
                     onSaved()
                     onDismiss()
                 }

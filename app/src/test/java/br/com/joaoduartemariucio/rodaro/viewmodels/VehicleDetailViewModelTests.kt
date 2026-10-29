@@ -13,8 +13,8 @@ import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryFuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
-import br.com.joaoduartemariucio.rodaro.presentation.vehicles.VehicleDetailViewModel.State
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.detail.VehicleDetailViewModel
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.detail.VehicleDetailViewModel.State
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.detail.VehicleTimeline
 import kotlinx.coroutines.test.runTest
 import org.junit.Test

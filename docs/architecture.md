@@ -57,6 +57,8 @@ each feature the usual folders: `entities/`, `repositories/` (interfaces), `calc
     `neighbors(date, samples)` (the readings right before and after a date).
   - `Maintenance` — km/month pace, next service date and odometer for a rule, and
     `status(due, currentOdometer, now, zone)` (on track / due soon / overdue, with progress).
+  - `TripCost` (`trips/`) — fuel cost of a trip: total distance (doubled for a round trip) ÷
+    km/L × price per liter, and cost per km.
   - `ReminderPlan` — when to notify for each rule: 9:00 on the due day, or the next 9:00 when overdue.
   - `CalendarMath` — start of day, adding days and months, month start, days between: the
     `Calendar` operations of the iOS code, on `java.time` with an explicit `ZoneId`.
@@ -133,16 +135,30 @@ One main host, and each feature owns its own routes and entries:
 - `presentation/<feature>/navigation/` — the feature's `…Route` sealed interface and a
   `…Entries(navigator)` extension on `EntryProviderScope<Route>` that maps each route to its
   screen. Vehicles: `VehiclesRoute` (`VehicleList`, `ArchivedVehicles`, `VehicleDetail`) in
-  `vehiclesEntries`; Profile: `ProfileRoute.Profile` in `profileEntries`. Forms stay dialogs
+  `vehiclesEntries`; Trips: `TripsRoute.TripCost` in `tripsEntries`; Profile: `ProfileRoute.Profile`
+  and `ProfileRoute.Auth` in `profileEntries`. Forms stay dialogs
   opened by their screen, not destinations.
 - `app/navigation/AppNavHost` — the main and only `NavDisplay`, inside a `Scaffold` with the
-  bottom bar. It lists the tabs (Vehicles, Archived, Profile), adds each feature's entries and
+  bottom bar. It lists the tabs (Vehicles, Archived, Route, Profile), adds each feature's entries and
   sets the transitions: slide for push and pop inside a tab, instant for a tab switch.
 
 Screens never see routes: they take callbacks (`onOpenVehicle`, `onBack`)
 and the feature's entries turn them into `Navigator` calls. A new screen in a feature means a
 new case in its `…Route` and one `entry<…>` in its `…Entries`; a new feature with screens adds
 its own `navigation/` folder and one line in `AppNavHost`, plus a `Tab` if it is top level.
+
+### Firebase
+
+`FirebaseSetup` (`app/`) starts Crashlytics, Remote Config, the push channel and AdMob when
+the application starts — the ad SDK, the first interstitial and the first app-open ad.
+`AppDependencies.analytics` is the only way the rest of the app reaches
+Analytics, and `AppNavHost` uses it to log screen views. Details and versions are in
+[decisions](decisions.md#android-firebase-and-admob).
+
+Authentication lives behind the Domain `AccountService`: `AppDependencies.accountService` is a
+`FirebaseAccountService` (Data) covering e-mail/password and Google sign-in, and
+`AppDependencies.clearLocalData` is the wipe that account deletion runs after the Firebase
+account is gone. See [decisions](decisions.md#android-firebase-authentication-and-account-deletion).
 
 ### Dependencies
 

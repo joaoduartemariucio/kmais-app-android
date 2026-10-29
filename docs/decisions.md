@@ -7,6 +7,87 @@ why, and what it costs. Newest first within each group. Product decisions are sh
 
 ## Platform parity
 
+### Android: Firebase Authentication and account deletion
+
+The account is **optional**: every screen works without one, and sign-in lives in the Profile tab
+(`presentation/profile/navigation/ProfileRoute.Auth` → `presentation/auth/`).
+
+- **Providers:** e-mail/password and Google. Google goes through Credential Manager
+  (`androidx.credentials` 1.6.0 + `credentials-play-services-auth`, `googleid` 1.1.0 — the version\n  the credentials provider itself depends on; 1.2.x ships Kotlin 2.4 metadata that Kotlin 2.2\n  cannot read) instead of
+  the deprecated `GoogleSignInClient`. The id token is exchanged for a Firebase credential inside
+  `FirebaseAccountService` (Data), so Presentation only ever sees the Domain `AccountService`.
+- **Needs a Web client id:** `default_web_client_id`, which the google-services plugin only
+  generates when `google-services.json` holds a type-3 oauth client (Firebase console →
+  Authentication → sign-in method → Google). Until then `signInWithGoogle` throws
+  `AccountError.GoogleNotConfigured` and the screen explains it instead of crashing.
+- **Errors** are mapped from Firebase codes in `data/common/services/AuthErrors.kt`
+  (`accountError`, accepting codes with and without the `ERROR_` prefix) so the mapping stays plain
+  Kotlin with unit tests; the SDK glue itself is coverage-ignored.
+- **Deleting from the app:** Profile → "Excluir conta e dados" calls `currentUser.delete()`.
+  `REQUIRES_RECENT_LOGIN` opens a confirm step — the password for e-mail accounts, a second Google
+  sign-in for Google ones — instead of failing, and only after the account is gone does
+  `AppDependencies.clearLocalData` cancel WorkManager, drop notifications and `clearAllTables()`.
+  The privacy site teaches the same steps (`hosting/public/privacidade.html`, section 12).
+- **Why optional:** the app is local-first; a mandatory login would lock people out of what
+  already works offline, and neither Analytics nor AdMob needs an account.
+
+### Android: Firebase and AdMob
+
+Firebase project `rodaro` (`app/google-services.json`), versions pinned in the catalog: BoM
+34.19.0 rather than the brand-new 35.x line, google-services 4.5.0, Crashlytics plugin 3.0.8,
+Performance plugin 2.0.2, `play-services-ads` 25.5.0.
+
+- **Start-up:** `app/FirebaseSetup` runs in `RodaroApplication.onCreate`. If no Firebase app can
+  be created (Robolectric tests), it does nothing.
+- **Crashlytics** collects only in non-debuggable builds, so local crashes do not pollute the
+  dashboard. **Performance** is automatic through its plugin.
+- **Analytics** goes through the Domain `Analytics` interface (`FirebaseAnalyticsTracker` in
+  Data, `NoAnalytics` for previews and tests). `AppNavHost` logs a `screen_view` named after the
+  top route each time it changes, so every screen is tracked without touching the screens.
+- **Remote Config** loads `res/xml/remote_config_defaults.xml` (empty for now) and calls
+  `fetchAndActivate` on start-up. Keys are added together with their first use.
+- **Push:** `data/push/services/PushMessagingService` shows notification and data messages
+  (`title`/`body`) on the `general` channel ("News and alerts") with the app's small icon. The
+  manifest sets that icon and channel as FCM defaults for messages that arrive in the background.
+  Nothing is sent to a server: the token stays inside FCM until a backend needs it, so
+  `onNewToken` is an empty override that exists only because Lint requires the callback.
+- **AdMob** (monetization; Google Ads would be the opposite side, paying for installs): the
+  SDK starts on a background thread, but `InterstitialAd.load` and `AppOpenAd.load` must run on
+  the main thread, so `FirebaseSetup` hops back to `Dispatchers.Main` before preparing them —
+  calling them from `Dispatchers.IO` crashes the app at start-up. The inventory is one adaptive
+  `AdBanner` at the end of the
+  Route tab and at the end of every form dialog, a native advanced card (`AdNative`) at the end of
+  the vehicle list, an interstitial after saving a fuel-up or a service, creating a vehicle or
+  finishing a route calculation, and an app-open ad on launch. Banners stay out of the fields and
+  interstitials only fire when a task has just completed, which is what keeps them from costing
+  store rating.
+- **AdMob ids per build type** (`resValue` in `app/build.gradle.kts`): debug always uses
+  Google's test ids, so nobody sees or clicks a real ad while developing, which is the main
+  reason AdMob accounts get suspended. Release uses the real app id
+  `ca-app-pub-1068825778444539~3367882368` and the units banner `…/5512371965`, interstitial
+  `…/8484477679`, native advanced `…/3466673450` and app open `…/6672702556`.
+- **`AD_ID` permission:** declared in the manifest. Apps targeting Android 13+ that carry an ad
+  unit must declare `com.google.android.gms.permission.AD_ID`, otherwise the Advertising ID comes
+  back as all zeroes.
+- **app-ads.txt:** served by Firebase Hosting of the same project, at
+  `https://rodaro.web.app/app-ads.txt` (`hosting/public/`, `firebase.json`). That domain is the
+  developer website on the Play Store listing, so AdMob can verify the publisher
+  `pub-1068825778444539`. Deploy with `firebase deploy --only hosting`.
+- **Privacy policy:** `https://rodaro.web.app/privacidade` (`hosting/public/privacidade.html`, in
+  pt-BR). It lists what stays on the device, what each Google service collects, the Android
+  backup, permissions and LGPD rights. It must change whenever a feature, SDK or permission
+  changes what is collected. Contact: the developer's e-mail.
+- **Cost:** `google-services.json` must exist for every build, CI included. It identifies the
+  Firebase project and is not a secret, but it carries an API key, and this repository is public,
+  so it is gitignored and `.github/workflows/ci.yml` recreates it from the `GOOGLE_SERVICES_JSON`
+  secret (`gh secret set GOOGLE_SERVICES_JSON < app/google-services.json`). That key should also
+  stay restricted to this app in the Google Cloud console.
+- **`fragment-ktx` 1.8.9 is a direct dependency** even though the app has no Fragments:
+  `registerForActivityResult` in `MainActivity` makes Lint check the *declared* fragment version,
+  and the 1.1.0 that a transitive brings in fails `InvalidFragmentVersionForActivityResult` even
+  though Gradle resolves it to something newer. Declaring it once, explicitly, is cheaper than
+  explaining the false positive forever.
+
 ### Android: the app is Rodaro, `br.com.joaoduartemariucio.rodaro`
 
 The app was renamed from KMais to Rodaro. The package, `namespace` and `applicationId` all became
@@ -191,9 +272,23 @@ nothing to drop.
 
 - **Cost:** a future sync layer has to bring its own conflict handling for ids.
 
-### Android: bottom bar with Vehicles, Archived and Profile
+### Trip cost uses the vehicle's real average, editable
 
-Archived moved from a button on the vehicle list to its own tab, next to Vehicles and Profile.
+The Route tab estimates a trip's fuel cost offline: distance (doubled for a round trip) ÷ km/L ×
+price per liter. Picking a vehicle fills km/L with its `Consumption.average` (full tank to full
+tank) and the price with its last fuel-up; both stay editable, and a value the user typed is kept
+when switching vehicles. A vehicle without two full tanks leaves km/L empty for the user.
+
+- **Why:** the average of real fill-ups is closer to a trip than the manufacturer's figure, and
+  the latest price is what the next fill-up will cost. No map or routing API: the user types the
+  distance.
+- **Revisit when:** tolls or splitting the cost between passengers are wanted, or a maps
+  integration brings the distance.
+
+### Android: bottom bar with Vehicles, Archived, Route and Profile
+
+Archived moved from a button on the vehicle list to its own tab, next to Vehicles, Route
+and Profile.
 Each tab keeps its own back stack, and the bar stays visible on pushed screens, like a tab
 bar on iOS, so the content never changes size during a transition. Switching tabs is
 instant, while push and pop inside a tab slide.

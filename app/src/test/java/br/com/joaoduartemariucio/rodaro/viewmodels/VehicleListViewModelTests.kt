@@ -12,9 +12,9 @@ import br.com.joaoduartemariucio.rodaro.fakes.FixedDateProvider
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryFuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
 import br.com.joaoduartemariucio.rodaro.fakes.InMemoryVehicleRepository
-import br.com.joaoduartemariucio.rodaro.presentation.vehicles.VehicleListViewModel.Scope
-import br.com.joaoduartemariucio.rodaro.presentation.vehicles.VehicleListViewModel.State
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.list.VehicleListViewModel
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.list.VehicleListViewModel.Scope
+import br.com.joaoduartemariucio.rodaro.presentation.vehicles.list.VehicleListViewModel.State
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.math.BigDecimal

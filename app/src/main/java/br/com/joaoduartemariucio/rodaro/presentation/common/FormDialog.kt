@@ -30,6 +30,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.AdBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +79,10 @@ fun FormDialog(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().imePadding().dismissesKeyboard(),
                     contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp),
-                    content = content,
+                    content = {
+                        content()
+                        item { AdBanner(Modifier.padding(top = 16.dp)) }
+                    },
                 )
             }
         }

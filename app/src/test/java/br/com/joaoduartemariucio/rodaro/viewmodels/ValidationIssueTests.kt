@@ -10,6 +10,7 @@ import br.com.joaoduartemariucio.rodaro.calculations.sample
 import br.com.joaoduartemariucio.rodaro.calculations.service
 import br.com.joaoduartemariucio.rodaro.calculations.testVehicleId
 import br.com.joaoduartemariucio.rodaro.calculations.utc
+import br.com.joaoduartemariucio.rodaro.domain.common.errors.AccountError
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
 import br.com.joaoduartemariucio.rodaro.fakes.TestLocalizer
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationIssue
@@ -98,5 +99,25 @@ class ValidationIssueTests {
         assertEquals("Could not save your changes.", RepositoryError.PersistenceFailed(IllegalStateException()).message(localizer))
         assertEquals("boom", IllegalStateException("boom").message(localizer))
         assertEquals("Could not save your changes.", IllegalStateException().message(localizer))
+    }
+
+    @Test
+    fun `account errors read as user-facing messages`() {
+        val localizer = TestLocalizer()
+
+        assertEquals("Enter a valid e-mail address.", AccountError.InvalidEmail.message(localizer))
+        assertEquals("E-mail or password is wrong.", AccountError.InvalidCredentials.message(localizer))
+        assertEquals("This e-mail is already registered. Sign in instead.", AccountError.EmailInUse.message(localizer))
+        assertEquals("Use a password with at least 6 characters.", AccountError.WeakPassword.message(localizer))
+        assertEquals("Too many attempts. Wait a moment and try again.", AccountError.TooManyRequests.message(localizer))
+        assertEquals("No connection. Check your internet and try again.", AccountError.Network.message(localizer))
+        assertEquals("Confirm your identity again to continue.", AccountError.RecentLoginRequired.message(localizer))
+        assertEquals("This sign-in method is not enabled for this app.", AccountError.OperationNotAllowed.message(localizer))
+        assertEquals("Google sign-in is not set up for this app yet.", AccountError.GoogleNotConfigured.message(localizer))
+        assertEquals("No Google account found on this device.", AccountError.NoGoogleAccount.message(localizer))
+        assertEquals("Could not complete the request.", AccountError.Cancelled.message(localizer))
+        assertEquals("You are not signed in.", AccountError.NotSignedIn.message(localizer))
+        assertEquals("java.lang.Exception: reason", AccountError.Failed(Exception("reason")).message(localizer))
+        assertEquals("java.lang.IllegalStateException", AccountError.Failed(IllegalStateException()).message(localizer))
     }
 }

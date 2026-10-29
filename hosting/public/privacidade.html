@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de Privacidade · Rodaro</title>
+  <meta name="description" content="Como o Rodaro trata seus dados: o que fica no seu aparelho, o que os serviços do Google coletam e como exercer seus direitos pela LGPD.">
+  <style>
+    :root { --bg: #f2f2f7; --card: #ffffff; --text: #1c1c1e; --muted: #6e6e73; --line: #e5e5ea; --accent: #0f9e86; --brand: #0e131d; --chip: #e7f8f4; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #000000; --card: #1c1c1e; --text: #ffffff; --muted: #98989f; --line: #38383a; --accent: #23d2b5; --chip: #0f2a26; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
+           font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    header a { display: flex; align-items: center; gap: 14px; color: inherit; text-decoration: none; }
+    .logo { width: 48px; height: 48px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; flex: none; }
+    .logo span { color: #23d2b5; font-size: 28px; font-weight: 800; line-height: 1; }
+    header strong { font-size: 20px; }
+    h1 { font-size: 30px; line-height: 1.2; margin: 24px 0 4px; }
+    .updated { color: var(--muted); margin: 0 0 24px; }
+    section { background: var(--card); border-radius: 18px; padding: 20px; margin: 14px 0; }
+    h2 { font-size: 19px; margin: 0 0 10px; }
+    h3 { font-size: 16px; margin: 16px 0 4px; }
+    p, li { color: var(--text); }
+    p { margin: 8px 0; }
+    ul { padding-left: 20px; margin: 8px 0; }
+    li { margin: 4px 0; }
+    .muted { color: var(--muted); }
+    a { color: var(--accent); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 12px; }
+    .summary div { background: var(--chip); border-radius: 12px; padding: 12px 14px; }
+    .summary b { display: block; margin-bottom: 2px; }
+    .table { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 520px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; }
+    tr:last-child td { border-bottom: none; }
+    @media (max-width: 600px) {
+      table { min-width: 0; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+      tr:last-child { border-bottom: none; }
+      td { border: none; padding: 2px 0; }
+      td:not(:first-child)::before { content: attr(data-label); display: block; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-top: 6px; }
+    }
+    code { background: var(--chip); padding: 1px 6px; border-radius: 6px; font-size: 14px; }
+    nav ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 24px; }
+    @media (max-width: 520px) { nav ol { columns: 1; } }
+    footer { color: var(--muted); text-align: center; margin-top: 32px; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/"><div class="logo"><span>R</span></div><strong>Rodaro</strong></a>
+  </header>
+
+  <h1>Política de Privacidade</h1>
+  <p class="updated">Vigente desde 28 de outubro de 2026</p>
+
+  <section>
+    <h2>Resumo</h2>
+    <p>O Rodaro é um app para acompanhar a manutenção de carros e motos: abastecimentos, consumo real, custo por km, lembretes de revisão e cálculo do custo de uma viagem. Ele funciona sem conta e sem servidor próprio; entrar com uma conta é opcional.</p>
+    <div class="summary">
+      <div><b>Conta opcional</b>Sem conta o app funciona igual. Se você entrar com Google ou e-mail, guardamos apenas o cadastro da conta.</div>
+      <div><b>Seus registros ficam no aparelho</b>Veículos, abastecimentos e serviços não são enviados para nós.</div>
+      <div><b>Serviços do Google</b>Estatísticas de uso, relatórios de falhas, desempenho, notificações e anúncios.</div>
+      <div><b>Não vendemos dados</b>Nenhuma informação sua é vendida ou alugada.</div>
+    </div>
+  </section>
+
+  <section>
+    <nav>
+      <h2>Nesta página</h2>
+      <ol>
+        <li><a href="#quem">Quem é o responsável</a></li>
+        <li><a href="#cadastrados">Dados que você cadastra</a></li>
+        <li><a href="#automaticos">Dados coletados automaticamente</a></li>
+        <li><a href="#anuncios">Anúncios e ID de publicidade</a></li>
+        <li><a href="#notificacoes">Notificações</a></li>
+        <li><a href="#backup">Backup do Android</a></li>
+        <li><a href="#permissoes">Permissões do app</a></li>
+        <li><a href="#compartilhamento">Compartilhamento</a></li>
+        <li><a href="#bases">Bases legais (LGPD)</a></li>
+        <li><a href="#retencao">Por quanto tempo guardamos</a></li>
+        <li><a href="#direitos">Seus direitos</a></li>
+        <li><a href="#excluir">Como excluir sua conta</a></li>
+        <li><a href="#seguranca">Segurança</a></li>
+        <li><a href="#criancas">Crianças</a></li>
+        <li><a href="#mudancas">Mudanças nesta política</a></li>
+        <li><a href="#contato">Contato</a></li>
+      </ol>
+    </nav>
+  </section>
+
+  <section id="quem">
+    <h2>1. Quem é o responsável</h2>
+    <p>O Rodaro é desenvolvido por João Vitor Duarte Mariucio, que é o controlador dos dados tratados pelo app, nos termos da Lei Geral de Proteção de Dados (Lei nº 13.709/2018, "LGPD"). Esta política vale para o app Rodaro para Android (<code>br.com.joaoduartemariucio.rodaro</code>) e para o site <a href="https://rodaro.web.app">rodaro.web.app</a>.</p>
+  </section>
+
+  <section id="cadastrados">
+    <h2>2. Dados que você cadastra</h2>
+    <p>Tudo o que você digita no Rodaro fica salvo <b>somente no banco de dados do seu aparelho</b>. Não temos servidor próprio e não recebemos uma cópia desses registros.</p>
+    <p>Se você optar por entrar com Google ou com e-mail e senha, o <b>Firebase Authentication</b> guarda o cadastro da sua conta (e-mail e, no login com Google, o nome que a sua conta Google fornece) somente para manter você conectado. Nada disso é usado para os seus registros de veículos, que continuam só no aparelho.</p>
+    <ul>
+      <li><b>Veículos:</b> nome ou apelido, tipo (carro ou moto), placa (opcional), quilometragem inicial, capacidade do tanque (opcional), data de cadastro e se está arquivado.</li>
+      <li><b>Abastecimentos:</b> data, quilometragem, litros, preço por litro e se o tanque foi completado.</li>
+      <li><b>Serviços de manutenção:</b> tipo de serviço (troca de óleo, pneus, filtros etc.), data, quilometragem, custo e observações que você escrever.</li>
+      <li><b>Lembretes:</b> intervalo em quilômetros e/ou meses de cada serviço.</li>
+      <li><b>Cálculo de rota:</b> distância, consumo e preço digitados para estimar o custo de uma viagem. Esses valores não são salvos; o app só os usa na tela.</li>
+    </ul>
+    <p>Com esses registros o app calcula, no próprio aparelho, consumo médio, custo por km, gastos do mês e quando cada revisão vence. Evite escrever nas observações informações pessoais que você não queira guardar no celular.</p>
+    <p>Para apagar tudo de uma vez, use <b>Perfil → Privacidade e dados → Excluir conta e dados</b> no app, como explicado na <a href="#excluir">seção 12</a>. Também dá para apagar registro por registro, limpar os dados do app nas configurações do Android ou desinstalar o Rodaro.</p>
+  </section>
+
+  <section id="automaticos">
+    <h2>3. Dados coletados automaticamente</h2>
+    <p>Para entender como o app é usado, corrigir falhas, medir desempenho, enviar avisos e exibir anúncios, o Rodaro usa serviços do Google. Eles coletam dados técnicos do aparelho e de uso. <b>Nenhum deles recebe seus registros de veículos, abastecimentos ou serviços.</b></p>
+    <div class="table">
+      <table>
+        <thead>
+          <tr><th>Serviço</th><th>O que coleta</th><th>Para quê</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Serviço"><b>Google Analytics para Firebase</b></td>
+            <td data-label="O que coleta">Telas abertas, eventos de uso, duração das sessões, identificador da instalação do app, modelo do aparelho, versão do Android e do app, idioma, país e região aproximados (pelo endereço IP) e o ID de publicidade.</td>
+            <td data-label="Para quê">Entender quais funções são usadas e melhorar o app.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Firebase Crashlytics</b></td>
+            <td data-label="O que coleta">Relatórios de falha: onde o erro ocorreu no código, modelo e estado do aparelho (memória, espaço, orientação), versão do Android e do app e um identificador da instalação.</td>
+            <td data-label="Para quê">Encontrar e corrigir travamentos. Só é ativado na versão publicada do app.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Firebase Performance Monitoring</b></td>
+            <td data-label="O que coleta">Tempo de abertura do app, tempo de carregamento de telas, duração de requisições de rede, modelo do aparelho, versão do Android, tipo de conexão e país.</td>
+            <td data-label="Para quê">Deixar o app mais rápido.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Firebase Cloud Messaging</b></td>
+            <td data-label="O que coleta">Um token de registro que identifica a instalação para receber notificações.</td>
+            <td data-label="Para quê">Enviar avisos e novidades sobre o app.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Firebase Remote Config</b></td>
+            <td data-label="O que coleta">Identificador da instalação, versão do app, idioma e país.</td>
+            <td data-label="Para quê">Ajustar configurações do app sem precisar de uma nova versão.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Firebase Authentication</b></td>
+            <td data-label="O que coleta">O cadastro da sua conta opcional: e-mail, senha (verificada pelo próprio Firebase) ou os dados da conta Google usados para o acesso. É só isso: não guardamos telefone nem endereço.</td>
+            <td data-label="Para quê">Manter você conectado quando você escolher entrar.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Google AdMob</b></td>
+            <td data-label="O que coleta">ID de publicidade, endereço IP, modelo do aparelho, versão do Android, idioma, região aproximada e interações com os anúncios (visualizações e cliques).</td>
+            <td data-label="Para quê">Exibir anúncios, medir seu desempenho e evitar fraudes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">O Google trata esses dados conforme a <a href="https://policies.google.com/privacy?hl=pt-BR">Política de Privacidade do Google</a> e os <a href="https://firebase.google.com/support/privacy?hl=pt-br">termos de privacidade do Firebase</a>. Saiba mais em <a href="https://policies.google.com/technologies/partner-sites?hl=pt-BR">como o Google usa dados de apps parceiros</a>.</p>
+  </section>
+
+  <section id="anuncios">
+    <h2>4. Anúncios e ID de publicidade</h2>
+    <p>O Rodaro é gratuito e exibe anúncios do Google AdMob:</p>
+    <ul>
+      <li><b>Banner</b> no fim da tela de cálculo de rota e no fim de cada formulário (novo abastecimento, novo serviço, novo veículo).</li>
+      <li><b>Anúncio nativo</b> no fim da lista de veículos.</li>
+      <li><b>Intersticial</b> (tela cheia) depois de você salvar um abastecimento, um serviço, criar um veículo ou calcular uma rota.</li>
+      <li><b>Anúncio de abertura</b> quando você abre o app.</li>
+    </ul>
+    <p>Nenhum anúncio fica dentro dos campos de um formulário nem cobre o conteúdo da tela.</p>
+    <p>O AdMob pode usar o ID de publicidade do Android para mostrar anúncios mais relevantes (anúncios personalizados) e para limitar quantas vezes você vê o mesmo anúncio. Você controla isso no próprio Android:</p>
+    <ul>
+      <li>Em <b>Configurações → Google → Anúncios</b> (ou <b>Configurações → Privacidade → Anúncios</b>, dependendo do aparelho), toque em <b>Excluir ID de publicidade</b>. Depois disso, os anúncios deixam de ser personalizados com base nesse ID.</li>
+      <li>Em <a href="https://myadcenter.google.com/?hl=pt-BR">Minha Central de Anúncios do Google</a> você também pode ajustar a personalização dos anúncios na sua conta.</li>
+    </ul>
+  </section>
+
+  <section id="notificacoes">
+    <h2>5. Notificações</h2>
+    <p>O Rodaro usa notificações de dois tipos, e só as exibe se você permitir:</p>
+    <ul>
+      <li><b>Lembretes de revisão:</b> agendados no próprio aparelho, a partir dos lembretes que você configurou. O título e o texto são montados no celular e não passam por nenhum servidor.</li>
+      <li><b>Avisos e novidades:</b> mensagens enviadas pelo Firebase Cloud Messaging, por exemplo sobre novas funções.</li>
+    </ul>
+    <p>Você pode desativar cada tipo separadamente em <b>Configurações → Apps → Rodaro → Notificações</b>.</p>
+  </section>
+
+  <section id="backup">
+    <h2>6. Backup do Android</h2>
+    <p>O Rodaro permite o backup automático do Android. Se ele estiver ativado no seu aparelho, os dados do app, incluindo seus registros, podem ser copiados de forma criptografada para o armazenamento da <b>sua</b> conta Google e restaurados quando você instalar o app em outro aparelho. Esse backup é feito pelo Android e fica na sua conta; nós não temos acesso a ele. Você pode desativá-lo em <b>Configurações → Google → Backup</b>.</p>
+  </section>
+
+  <section id="permissoes">
+    <h2>7. Permissões do app</h2>
+    <ul>
+      <li><b>Notificações</b> (<code>POST_NOTIFICATIONS</code>): para exibir lembretes e avisos. O app só pede essa permissão quando há algo para lembrar.</li>
+      <li><b>Internet e estado da rede:</b> usados pelos serviços do Google descritos acima. O app funciona sem internet; só as estatísticas, anúncios e avisos dependem dela.</li>
+      <li><b>ID de publicidade</b> (<code>AD_ID</code>): usado pelo AdMob, conforme a seção 4.</li>
+      <li><b>Execução após reiniciar e manter o aparelho ativo:</b> usadas pelo agendador do Android para que os lembretes continuem valendo depois que o celular é reiniciado.</li>
+    </ul>
+    <p>O Rodaro <b>não</b> acessa sua localização, contatos, câmera, microfone, fotos ou arquivos.</p>
+  </section>
+
+  <section id="compartilhamento">
+    <h2>8. Compartilhamento</h2>
+    <p>Não vendemos, alugamos nem trocamos seus dados. Os dados técnicos descritos na seção 3 são tratados pelo Google LLC, que atua como operador (e, no caso dos anúncios, também segundo suas próprias políticas). Esses dados podem ser processados em servidores fora do Brasil, com as salvaguardas previstas pelo Google para transferências internacionais.</p>
+    <p>Podemos fornecer informações se formos obrigados por lei ou por ordem judicial.</p>
+  </section>
+
+  <section id="bases">
+    <h2>9. Bases legais (LGPD)</h2>
+    <ul>
+      <li><b>Seus registros no aparelho:</b> tratados por você, para a finalidade que você escolher; nós não temos acesso a eles.</li>
+      <li><b>Estatísticas, relatórios de falhas e desempenho:</b> legítimo interesse em manter o app funcionando e melhorá-lo (art. 7º, IX).</li>
+      <li><b>Anúncios:</b> legítimo interesse em manter o app gratuito, com a possibilidade de você limitar a personalização a qualquer momento (seção 4).</li>
+      <li><b>Notificações:</b> seu consentimento, dado ao permitir as notificações no Android, que você pode revogar quando quiser.</li>
+    </ul>
+  </section>
+
+  <section id="retencao">
+    <h2>10. Por quanto tempo guardamos</h2>
+    <ul>
+      <li><b>Seus registros:</b> ficam no aparelho até você apagá-los ou desinstalar o app.</li>
+      <li><b>Dados do Google Analytics:</b> os dados por usuário e por evento ficam pelo período de retenção configurado no projeto (2 ou 14 meses); relatórios agregados podem ser mantidos por mais tempo.</li>
+      <li><b>Relatórios de falha do Crashlytics:</b> mantidos por 90 dias.</li>
+      <li><b>Demais serviços do Google:</b> pelos prazos definidos nas políticas do Google.</li>
+    </ul>
+  </section>
+
+  <section id="direitos">
+    <h2>11. Seus direitos</h2>
+    <p>Pela LGPD (art. 18), você pode pedir confirmação de que tratamos seus dados, acesso, correção, anonimização, bloqueio ou eliminação de dados desnecessários, portabilidade, informações sobre compartilhamento e a revogação do consentimento.</p>
+    <p>Se você não usou a conta opcional, os dados técnicos do Google não podem ser associados a você pelo nome ou e-mail. Na prática:</p>
+    <ul>
+      <li><b>Seus registros</b> você mesmo acessa, corrige e apaga no app — ou apaga tudo de uma vez em <b>Perfil → Privacidade e dados → Excluir conta e dados</b>.</li>
+      <li><b>Sua conta</b>, se você criou, é excluída pelo próprio app, como mostramos na <a href="#excluir">seção 12</a>.</li>
+      <li><b>Dados de uso, falhas e notificações</b> deixam de ser coletados quando você desinstala o app. Para pedir a exclusão do que já foi coletado, fale com a gente pelo contato abaixo.</li>
+      <li><b>Anúncios personalizados</b> você controla pelo ID de publicidade (seção 4).</li>
+    </ul>
+    <p>Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (<a href="https://www.gov.br/anpd/pt-br">ANPD</a>).</p>
+  </section>
+
+  <section id="excluir">
+    <h2>12. Como excluir sua conta e seus dados</h2>
+    <p>Excluir é rápido e você faz tudo pelo próprio app, sem precisar mandar e-mail nem esperar resposta.</p>
+    <h3>Pelo app (forma mais simples)</h3>
+    <ol>
+      <li>Abra o Rodaro e toque em <b>Perfil</b>, a última aba de baixo.</li>
+      <li>Na seção <b>Privacidade e dados</b>, toque em <b>Excluir conta e dados</b>.</li>
+      <li>Leia o aviso e confirme em <b>Excluir</b>. O app explica que a conta e os registros do aparelho serão apagados.</li>
+      <li>Por segurança, o Firebase pode pedir sua senha (conta com e-mail) ou uma confirmação com o Google. Digite ou confirme quando solicitado.</li>
+      <li>Pronto: a conta sai do Firebase e todos os seus registros — veículos, abastecimentos, serviços e lembretes — são apagados deste aparelho.</li>
+    </ol>
+    <h3>Se você não conseguiu entrar</h3>
+    <ul>
+      <li>Você pode apagar os dados do aparelho a qualquer momento em <b>Configurações → Apps → Rodaro → Armazenamento → Limpar dados</b>.</li>
+      <li>Para apagar o cadastro da conta sem entrar no app, mande um e-mail para o <a href="mailto:joaovitorduartemariucio@gmail.com">contato abaixo</a> pedindo a exclusão e informando o e-mail da conta.</li>
+    </ul>
+    <h3>O que acontece depois</h3>
+    <ul>
+      <li>A conta e os registros saem do app e do Firebase.</li>
+      <li>Podem permanecer por prazo limitado nos backups do Android e nos relatórios já agregados dos serviços do Google, conforme a seção 10.</li>
+      <li>Sua conta Google continua existindo. Para revogar o acesso do app a ela, acesse <a href="https://myaccount.google.com/permissions">Minha conta → Apps e serviços</a> e remova o Rodaro.</li>
+    </ul>
+  </section>
+
+  <section id="seguranca">
+    <h2>13. Segurança</h2>
+    <p>Seus registros ficam no armazenamento privado do app, que outros apps não podem ler, e são protegidos pelo bloqueio de tela e pela criptografia do Android. A comunicação com os serviços do Google é feita por conexões criptografadas (HTTPS). Nenhum sistema é totalmente seguro, mas evitamos guardar dados que não precisamos.</p>
+  </section>
+
+  <section id="criancas">
+    <h2>14. Crianças</h2>
+    <p>O Rodaro é voltado a motoristas e não é direcionado a menores de 13 anos. Não coletamos intencionalmente dados de crianças. Se você acredita que uma criança nos enviou dados, entre em contato para que possamos removê-los.</p>
+  </section>
+
+  <section id="mudancas">
+    <h2>15. Mudanças nesta política</h2>
+    <p>Podemos atualizar esta política quando o app mudar, por exemplo ao adicionar uma função ou um serviço. A data de vigência no topo indica a versão atual. Mudanças importantes também serão avisadas no próprio app ou na página da Play Store.</p>
+  </section>
+
+  <section id="contato">
+    <h2>16. Contato</h2>
+    <p>Dúvidas, pedidos sobre seus dados ou sugestões: <a href="mailto:joaovitorduartemariucio@gmail.com">joaovitorduartemariucio@gmail.com</a></p>
+  </section>
+
+  <footer>© 2026 Rodaro · <a href="/">Início</a></footer>
+</div>
+</body>
+</html>

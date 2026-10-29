@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
     jacoco
 }
 
@@ -22,11 +25,21 @@ android {
     buildTypes {
         debug {
             enableUnitTestCoverage = true
+            resValue("string", "admob_app_id", "ca-app-pub-3940256099942544~3347511713")
+            resValue("string", "admob_banner_unit_id", "ca-app-pub-3940256099942544/9214589741")
+            resValue("string", "admob_interstitial_unit_id", "ca-app-pub-3940256099942544/1033173712")
+            resValue("string", "admob_native_unit_id", "ca-app-pub-3940256099942544/2247696110")
+            resValue("string", "admob_app_open_unit_id", "ca-app-pub-3940256099942544/9257395921")
         }
         release {
             optimization {
                 enable = false
             }
+            resValue("string", "admob_app_id", "ca-app-pub-1068825778444539~3367882368")
+            resValue("string", "admob_banner_unit_id", "ca-app-pub-1068825778444539/5512371965")
+            resValue("string", "admob_interstitial_unit_id", "ca-app-pub-1068825778444539/8484477679")
+            resValue("string", "admob_native_unit_id", "ca-app-pub-1068825778444539/3466673450")
+            resValue("string", "admob_app_open_unit_id", "ca-app-pub-1068825778444539/6672702556")
         }
     }
 
@@ -37,6 +50,7 @@ android {
 
     buildFeatures {
         compose = true
+        resValues = true
     }
 
     testOptions {
@@ -60,6 +74,7 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -74,6 +89,18 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.config)
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.ads)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    implementation(libs.kotlinx.coroutines.play.services)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

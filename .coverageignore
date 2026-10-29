@@ -30,3 +30,9 @@ app/src/main/java/*/presentation/common/Localizer.kt
 
 # Fixtures for Compose previews and the debug seeder
 app/src/main/java/*/data/PreviewData.kt
+
+# Firebase and AdMob glue: SDK calls with no logic of their own
+app/src/main/java/*/data/common/services/FirebaseAnalyticsTracker.kt
+app/src/main/java/*/data/common/services/FirebaseAccountService.kt
+app/src/main/java/*/data/push/services/PushMessagingService.kt
+app/src/main/java/*/presentation/common/ads/*

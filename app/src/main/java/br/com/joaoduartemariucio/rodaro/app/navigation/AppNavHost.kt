@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -25,6 +26,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -33,11 +35,14 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import br.com.joaoduartemariucio.rodaro.R
+import br.com.joaoduartemariucio.rodaro.app.LocalDependencies
 import br.com.joaoduartemariucio.rodaro.presentation.common.navigation.Navigator
 import br.com.joaoduartemariucio.rodaro.presentation.common.navigation.Route
 import br.com.joaoduartemariucio.rodaro.presentation.common.navigation.rememberNavigator
 import br.com.joaoduartemariucio.rodaro.presentation.profile.navigation.ProfileRoute
 import br.com.joaoduartemariucio.rodaro.presentation.profile.navigation.profileEntries
+import br.com.joaoduartemariucio.rodaro.presentation.trips.navigation.TripsRoute
+import br.com.joaoduartemariucio.rodaro.presentation.trips.navigation.tripsEntries
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.navigation.VehiclesRoute
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.navigation.vehiclesEntries
 
@@ -53,11 +58,16 @@ private val tabs =
     listOf(
         Tab(VehiclesRoute.VehicleList, R.string.vehicles, Icons.Filled.DirectionsCar),
         Tab(VehiclesRoute.ArchivedVehicles, R.string.archived, Icons.Filled.Archive),
+        Tab(TripsRoute.TripCost, R.string.route, Icons.Filled.Route),
         Tab(ProfileRoute.Profile, R.string.profile, Icons.Filled.Person),
     )
 
 @Composable
 fun AppNavHost(navigator: Navigator = rememberNavigator(tabs.map { it.route })) {
+    val analytics = LocalDependencies.current.analytics
+    val screen = navigator.backStack.last()
+    LaunchedEffect(screen) { analytics.screen(screen::class.simpleName ?: screen.toString()) }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentWindowInsets = WindowInsets(0),
@@ -83,7 +93,8 @@ fun AppNavHost(navigator: Navigator = rememberNavigator(tabs.map { it.route })) 
             entryProvider =
                 entryProvider<Route> {
                     vehiclesEntries(navigator)
-                    profileEntries()
+                    tripsEntries()
+                    profileEntries(navigator)
                 },
         )
     }

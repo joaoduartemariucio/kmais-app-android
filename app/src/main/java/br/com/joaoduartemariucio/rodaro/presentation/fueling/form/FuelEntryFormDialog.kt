@@ -39,6 +39,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.SectionDivider
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionFooter
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import br.com.joaoduartemariucio.rodaro.presentation.common.ValidationFooter
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.InterstitialAds
 import br.com.joaoduartemariucio.rodaro.presentation.common.formattedCurrency
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -72,6 +73,7 @@ fun FuelEntryFormDialog(
             coroutines.launch {
                 viewModel.save()
                 if (viewModel.state == FormState.Saved) {
+                    InterstitialAds.show()
                     onSaved()
                     onDismiss()
                 }

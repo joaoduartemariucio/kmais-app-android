@@ -53,6 +53,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.LoadingIndicator
 import br.com.joaoduartemariucio.rodaro.presentation.common.Palette
 import br.com.joaoduartemariucio.rodaro.presentation.common.SwipeAction
 import br.com.joaoduartemariucio.rodaro.presentation.common.SwipeActionsBox
+import br.com.joaoduartemariucio.rodaro.presentation.common.ads.AdNative
 import br.com.joaoduartemariucio.rodaro.presentation.common.message
 import br.com.joaoduartemariucio.rodaro.presentation.common.rememberLocalizer
 import br.com.joaoduartemariucio.rodaro.presentation.vehicles.form.VehicleFormDialog
@@ -181,6 +182,9 @@ fun VehicleListScreen(
                                         onEdit = { sheet = VehicleListSheet.Edit(row.vehicle) },
                                         onArchive = { archived -> coroutines.launch { viewModel.setArchived(archived, row.vehicle) } },
                                     )
+                                }
+                                if (isActive) {
+                                    item(key = "ad") { AdNative(Modifier.padding(top = 10.dp)) }
                                 }
                             }
                         }
