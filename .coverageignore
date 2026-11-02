@@ -12,6 +12,7 @@ app/src/main/java/*/presentation/*Row.kt
 app/src/main/java/*/presentation/*Card.kt
 app/src/main/java/*/presentation/vehicles/detail/components/Charts.kt
 app/src/main/java/*/presentation/maintenance/form/components/ServiceKindGrid.kt
+app/src/main/java/*/presentation/trips/TripComponents.kt
 app/src/main/java/*/presentation/*/navigation/*Navigation.kt
 app/src/main/java/*/presentation/common/Badges.kt
 app/src/main/java/*/presentation/common/DateField.kt

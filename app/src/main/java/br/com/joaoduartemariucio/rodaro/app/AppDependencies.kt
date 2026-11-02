@@ -14,6 +14,7 @@ import br.com.joaoduartemariucio.rodaro.data.database.RodaroDatabase
 import br.com.joaoduartemariucio.rodaro.data.fueling.repositories.RoomFuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.data.maintenance.repositories.RoomServiceRepository
 import br.com.joaoduartemariucio.rodaro.data.network.OrsNetwork
+import br.com.joaoduartemariucio.rodaro.data.network.RodaroNetwork
 import br.com.joaoduartemariucio.rodaro.data.preferences.LocaleLanguageApplier
 import br.com.joaoduartemariucio.rodaro.data.preferences.SharedPreferencesPreferencesRepository
 import br.com.joaoduartemariucio.rodaro.data.reminders.services.NotificationPermission
@@ -53,7 +54,10 @@ class AppDependencies(
         if (BuildConfig.ORS_API_KEY.isEmpty()) {
             UnavailableRouteEstimateProvider
         } else {
-            OpenRouteServiceProvider(OrsNetwork.api(BuildConfig.ORS_API_KEY))
+            OpenRouteServiceProvider(
+                api = OrsNetwork.api(BuildConfig.ORS_API_KEY),
+                routes = BuildConfig.RODARO_API_URL.takeIf { it.isNotEmpty() }?.let(RodaroNetwork::api),
+            )
         }
     val dateProvider: DateProvider = SystemDateProvider()
     val accountService: AccountService = FirebaseAccountService(context)

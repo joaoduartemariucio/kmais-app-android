@@ -19,9 +19,33 @@ val orsApiKeyFromLocalProperties =
         ?.trim()
         .orEmpty()
 
-val orsApiKeyFromEnvironment = providers.environmentVariable("OPEN_ROUTE_API_KEY").orNull?.trim().orEmpty()
+val orsApiKeyFromEnvironment =
+    providers
+        .environmentVariable("OPEN_ROUTE_API_KEY")
+        .orNull
+        ?.trim()
+        .orEmpty()
 
 val orsApiKey = orsApiKeyFromLocalProperties.ifBlank { orsApiKeyFromEnvironment }
+
+val rodaroApiUrl =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.lineSequence()
+        ?.firstOrNull { it.startsWith("rodaro.api.url=") }
+        ?.substringAfter("=")
+        ?.trim()
+        .orEmpty()
+        .ifBlank {
+            providers
+                .environmentVariable("RODARO_API_URL")
+                .orNull
+                ?.trim()
+                .orEmpty()
+        }
+
+val debugRodaroApiUrl = rodaroApiUrl.ifBlank { "http://localhost:3000/" }
 
 android {
     namespace = "br.com.joaoduartemariucio.rodaro"
@@ -41,6 +65,7 @@ android {
         debug {
             enableUnitTestCoverage = true
             buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
+            buildConfigField("String", "RODARO_API_URL", "\"$debugRodaroApiUrl\"")
             resValue("string", "admob_app_id", "ca-app-pub-3940256099942544~3347511713")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-3940256099942544/9214589741")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-3940256099942544/1033173712")
@@ -52,6 +77,7 @@ android {
                 enable = false
             }
             buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
+            buildConfigField("String", "RODARO_API_URL", "\"$rodaroApiUrl\"")
             resValue("string", "admob_app_id", "ca-app-pub-1068825778444539~3367882368")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-1068825778444539/5512371965")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-1068825778444539/8484477679")
@@ -82,7 +108,7 @@ android {
         warningsAsErrors = true
         abortOnError = true
         checkDependencies = false
-        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi", "LogNotTimber")
     }
 }
 
@@ -122,6 +148,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
+    implementation(libs.maplibre.android)
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

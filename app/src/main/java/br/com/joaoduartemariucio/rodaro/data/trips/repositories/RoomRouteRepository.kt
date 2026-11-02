@@ -1,5 +1,6 @@
 package br.com.joaoduartemariucio.rodaro.data.trips.repositories
 
+import br.com.joaoduartemariucio.rodaro.data.network.Polyline
 import br.com.joaoduartemariucio.rodaro.data.trips.models.TripRouteDao
 import br.com.joaoduartemariucio.rodaro.data.trips.models.TripRouteModel
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
@@ -37,10 +38,14 @@ class RoomRouteRepository(
             distanceKm = distanceKm,
             isRoundTrip = isRoundTrip,
             hasTolls = hasTolls,
+            tollCost = tollCost,
+            kilometersPerLiter = kilometersPerLiter,
+            pricePerLiter = pricePerLiter,
             liters = liters,
             fuelCost = fuelCost,
             costPerKilometer = costPerKilometer,
             createdAt = createdAt,
+            path = Polyline.decode(path, Polyline.PRECISION_6),
         )
 
     private fun SavedRoute.toModel() =
@@ -52,9 +57,13 @@ class RoomRouteRepository(
             distanceKm = distanceKm,
             isRoundTrip = isRoundTrip,
             hasTolls = hasTolls,
+            tollCost = tollCost,
+            kilometersPerLiter = kilometersPerLiter,
+            pricePerLiter = pricePerLiter,
             liters = liters,
             fuelCost = fuelCost,
             costPerKilometer = costPerKilometer,
             createdAt = createdAt,
+            path = Polyline.encode(path, Polyline.PRECISION_6),
         )
 }

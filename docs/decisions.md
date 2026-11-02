@@ -500,6 +500,15 @@ counted from the last service of that kind (or the vehicle's creation).
 
 ## Presentation
 
+### Route tab starts with saved routes; calculator is a separate screen
+
+The Route tab now opens on a saved-routes list. Starting a new estimate opens a dedicated
+calculation screen, and restoring a route opens that same screen prefilled.
+
+- **Why:** daily use is mostly revisiting known routes; separating list and form reduces visual
+  clutter and typing.
+- **Cost:** one extra tap for the first estimate in a session.
+
 ### Dashboard on the vehicle screen
 
 The detail screen leads with the odometer and km/month, a 2×2 grid of metrics, every
@@ -557,6 +566,15 @@ ViewModel that performs a user action takes an `analytics: Analytics` parameter 
 
 ## Routes and networking
 
+### Route estimate shows fuel-only scope; tolls are out of scope
+
+OpenRouteService can tell if a route has toll roads, but does not provide a reliable toll amount.
+The Route screen therefore explains that the estimate is based only on distance, consumption and
+fuel price, and that toll costs should be checked separately.
+
+- **Why:** avoid showing a misleading total when the app cannot compute toll prices correctly.
+- **Cost:** users need an extra step to account for tolls.
+
 ### Real distance and tolls come from OpenRouteService
 
 The route tab looks up the real distance between an origin and a destination, and tells
@@ -582,15 +600,59 @@ whether the road has tolls. The provider is the free
 
 `TripCostScreen` can save a calculation. The saved route stores the typed origin and
 destination, the one-way distance, the round-trip flag, the toll flag and a snapshot of the
-result (liters, fuel cost, cost per kilometer) with the vehicle and the date.
+inputs and result (km/L used, price per liter, liters, fuel cost, cost per kilometer) with the
+vehicle and the date.
 
 - **Why a snapshot instead of a reference:** consumption and fuel price change with every
   fuel-up; a saved trip is a record of what the user calculated that day, not a live
   recalculation.
-- The new `trip_routes` table bumps the database to version 2 with a `MIGRATION_1_2` that
-  only creates the table, and `RodaroDatabaseMigrationTests` runs that migration against a
-  real version-1 database (recreated from the exported `1.json` schema) and checks the old
-  data survives.
+- `trip_routes` was introduced in database version 2 (`MIGRATION_1_2`), later extended with
+  `tollCost` in version 3 (`MIGRATION_2_3`) and with `kilometersPerLiter` and
+  `pricePerLiter` in version 4 (`MIGRATION_3_4`). `RodaroDatabaseMigrationTests` covers each
+  step and checks existing data survives with safe defaults on new columns.
+
+### Trip cost shows fill-ups from the tank capacity and where each input came from
+
+The trip screens use the selected vehicle's tank capacity and fuel history instead of only
+the typed numbers.
+
+- **Fill-ups:** `TankPlan` divides the trip's liters by the tank capacity. "Fill up N times"
+  is that ratio rounded up (a tiny tolerance keeps exactly 2.0 tanks at 2), and the stops on
+  the way are N − 1, assuming the driver leaves with a full tank. Range per tank is capacity
+  × km/L. There is no reserve margin: the screen states the assumption instead of guessing a
+  percentage. Without a tank capacity the screen asks for one rather than hiding the section.
+- **Inputs stay editable:** consumption is still pre-filled with the full-tank average and
+  price with the last fuel-up, but the screen now says so (number of full-to-full intervals,
+  date of the last price). Once the user types another value it is labelled as edited and a
+  "Use average" / "Use last price" action restores the suggestion. Switching vehicles still
+  keeps typed values, as before.
+- **Restoring a saved calculation** keeps its snapshot values (see below) and only loads the
+  vehicle history as an offer, so editing an old trip never silently changes its numbers.
+- **Saved calculations open a detail screen** first; editing is an explicit action. The tank
+  plan in the detail uses the vehicle's current capacity, since capacity is not part of the
+  snapshot and rarely changes.
+
+- **Route and toll cost come from rodaro-api when `RODARO_API_URL` is set.** OpenRouteService
+  stays for autocomplete and geocoding, since rodaro-api only takes coordinates. The API is
+  asked for both directions because tolls are often charged one way only (Santos → São Paulo
+  pays nothing), so the round-trip toll is the sum of the two legs rather than double the
+  outbound. Debug builds default to `http://localhost:3000/` behind `adb reverse` (`make
+  local-api`) and allow cleartext: with target SDK 37 Android silently drops connections to
+  private addresses such as `10.0.2.2` unless the app holds the local network permission, while
+  loopback is exempt and works the same on the emulator and on a USB device. Release builds use
+  the API only when the URL is configured.
+
+- **The route preview is MapLibre on OpenFreeMap tiles.** Both are free with no API key or
+  usage quota, unlike Google Maps SDK or Mapbox. The map is a static preview (gestures off) so
+  it does not fight the form's scroll; navigation is handed to Google Maps or Waze by URL,
+  which needs no SDK or package query. The path is stored with the saved route as a
+  precision-6 encoded polyline, so a saved calculation shows its map without a new lookup;
+  routes saved before this have an empty path and show only the open-in buttons.
+
+- **A trip's total is fuel plus tolls; cost per km stays fuel only.** The total is what the
+  trip costs out of pocket, so tolls belong in it, and the fuel/toll split is shown under it.
+  Cost per km is kept as fuel cost so it stays comparable with the vehicle's own cost per km,
+  which comes from fill-ups and has no tolls.
 
 ## Tooling
 

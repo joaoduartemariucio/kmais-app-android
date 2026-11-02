@@ -137,7 +137,6 @@
     <string name="vehicle">Vehicle</string>
     <string name="fuel_cost">Fuel cost</string>
     <string name="unit_km_per_liter">km/L</string>
-    <string name="consumption_from_average">Average of this vehicle\'s full tanks.</string>
     <string name="consumption_missing">No consumption history yet. Enter the km/L.</string>
     <string name="trip_cost_hint">Enter the distance, consumption and price to see the cost.</string>
     <string name="format_version">Version %1$s</string>
@@ -247,14 +246,71 @@
     <string name="route_placeholder">City, address or landmark</string>
     <string name="lookup_real_distance">Look up real distance</string>
     <string name="looking_up_distance">Looking up distance…</string>
+    <string name="searching_places">Searching places…</string>
     <string name="lookup_failed">Could not look up the distance. Check the places and your connection.</string>
+    <string name="lookup_place_not_found">Could not find one of the places. Pick a suggestion or type a more complete address.</string>
+    <string name="lookup_invalid_api_key">Invalid OpenRouteService API key. Check OPEN_ROUTE_API_KEY or local.properties.</string>
+    <string name="lookup_quota_exceeded">OpenRouteService limit reached for this key. Try again later.</string>
+    <string name="lookup_network_unavailable">No internet connection while contacting OpenRouteService.</string>
     <string name="lookup_no_api_key">Real distance is unavailable until an API key is configured.</string>
     <string name="save_calculation">Save calculation</string>
     <string name="save_calculation_failed">Could not save the calculation.</string>
+    <string name="delete_route_failed">Could not delete the route.</string>
     <string name="saved_routes">Saved routes</string>
-    <string name="tolls">Tolls</string>
-    <string name="tolls_yes">Yes</string>
-    <string name="tolls_no">No</string>
-    <string name="restore_route">Restore this calculation</string>
+    <string name="saved_routes_load_failed">Could not load saved routes.</string>
+    <string name="saved_routes_empty_title">No saved routes yet</string>
+    <string name="saved_routes_empty_message">Save your frequent routes to reopen them quickly.</string>
+    <string name="new_route_calculation">New route calculation</string>
+    <string name="route_cost_scope_note">Estimate based only on distance, consumption and fuel price. Check toll costs separately.</string>
     <string name="delete_route">Delete this route</string>
+    <string name="new_route_title">New calculation</string>
+    <string name="edit_route_title">Edit calculation</string>
+    <string name="route_detail_title">Calculation</string>
+    <string name="swap_places">Swap origin and destination</string>
+    <string name="one_way">One way</string>
+    <string name="route_has_tolls">Route with tolls</string>
+    <string name="route_tolls_cost">Tolls: %1$s</string>
+    <string name="trip_total_cost">Total trip cost</string>
+    <string name="trip_cost_breakdown">Fuel %1$s · Tolls %2$s</string>
+    <string name="route_map">Route map</string>
+    <string name="open_in_google_maps" translatable="false">Google Maps</string>
+    <string name="open_in_waze" translatable="false">Waze</string>
+    <string name="route_no_tolls">No tolls on this route</string>
+    <string name="tolls">Tolls</string>
+    <plurals name="consumption_history_basis">
+        <item quantity="one">Based on this vehicle\'s fuel history · %d full-to-full interval</item>
+        <item quantity="other">Based on this vehicle\'s fuel history · %d full-to-full intervals</item>
+    </plurals>
+    <string name="consumption_edited">Edited by you. Vehicle average: %1$s</string>
+    <string name="use_average">Use average</string>
+    <string name="price_from_last_fuel_up_on">From your last fuel-up on %1$s</string>
+    <string name="price_edited">Edited by you. Last fuel-up: %1$s</string>
+    <string name="use_last_price">Use last price</string>
+    <string name="vehicle_tank">%1$s tank</string>
+    <string name="vehicle_no_tank">No tank capacity</string>
+    <string name="tank_plan">Fill-ups</string>
+    <plurals name="tank_fill_ups">
+        <item quantity="one">Fill up %d time</item>
+        <item quantity="other">Fill up %d times</item>
+    </plurals>
+    <string name="format_tanks">%1$s× the tank</string>
+    <string name="fits_in_one_tank">Fits in one tank: no stops if you leave with it full.</string>
+    <plurals name="stops_on_the_way">
+        <item quantity="one">%d stop on the way if you leave with a full tank.</item>
+        <item quantity="other">%d stops on the way if you leave with a full tank.</item>
+    </plurals>
+    <string name="range_per_tank">Range per tank</string>
+    <string name="tank_plan_unavailable">Add this vehicle\'s tank capacity to see how many fill-ups the trip needs.</string>
+    <plurals name="route_count">
+        <item quantity="one">%d saved calculation</item>
+        <item quantity="other">%d saved calculations</item>
+    </plurals>
+    <string name="all_vehicles">All</string>
+    <string name="total_estimated">Total estimated</string>
+    <string name="calculation_inputs">Values used</string>
+    <string name="calculation_snapshot_note">Saved on %1$s with that day\'s consumption and price.</string>
+    <string name="route_missing">This calculation no longer exists.</string>
+    <string name="one_way_distance">One-way distance</string>
+    <string name="delete_route_confirm_title">Delete this calculation?</string>
+    <string name="delete_route_confirm_message">This cannot be undone.</string>
 </resources>

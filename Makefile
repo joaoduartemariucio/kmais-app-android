@@ -3,7 +3,7 @@ COVERAGE_REPORT := app/build/reports/coverage/test/debug/report.xml
 BASE ?= origin/main
 MIN_COVERAGE ?= 80
 
-.PHONY: ci lint format format-check build test coverage clean
+.PHONY: ci lint format format-check build test coverage clean local-api
 
 ci: lint format-check build test coverage
 
@@ -28,3 +28,7 @@ coverage:
 
 clean:
 	$(GRADLE) clean
+
+local-api:
+	adb reverse tcp:3000 tcp:3000
+	$(GRADLE) :app:installDebug

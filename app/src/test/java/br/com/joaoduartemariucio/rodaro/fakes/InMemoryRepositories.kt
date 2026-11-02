@@ -13,11 +13,13 @@ import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
 import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.Reminder
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.ReminderScheduler
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.PlaceSuggestion
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RouteEstimate
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
 import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
 import br.com.joaoduartemariucio.rodaro.domain.trips.services.RouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
 import java.time.Instant
 import java.time.ZoneId
@@ -196,16 +198,25 @@ class FakeAnalytics : Analytics {
 
 class FakeRouteEstimateProvider(
     var estimate: RouteEstimate = RouteEstimate(distanceKm = 120.0, durationMinutes = 90, hasTolls = true),
+    var suggestions: List<PlaceSuggestion> = emptyList(),
     var failure: Exception? = null,
 ) : RouteEstimateProvider {
     val lookups = mutableListOf<Pair<String, String>>()
+    val kinds = mutableListOf<VehicleKind>()
+
+    override suspend fun suggestions(query: String): List<PlaceSuggestion> {
+        failure?.let { throw it }
+        return suggestions
+    }
 
     override suspend fun estimate(
         origin: String,
         destination: String,
+        vehicleKind: VehicleKind,
     ): RouteEstimate {
         failure?.let { throw it }
         lookups += origin to destination
+        kinds += vehicleKind
         return estimate
     }
 }

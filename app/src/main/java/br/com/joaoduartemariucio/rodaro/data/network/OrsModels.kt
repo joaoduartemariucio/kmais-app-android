@@ -11,6 +11,13 @@ data class GeocodeResponse(
 @Serializable
 data class GeocodeFeature(
     val geometry: GeocodeGeometry,
+    val properties: GeocodeProperties? = null,
+)
+
+@Serializable
+data class GeocodeProperties(
+    val label: String? = null,
+    val name: String? = null,
 )
 
 @Serializable
@@ -35,6 +42,7 @@ data class DirectionsResponse(
 @Serializable
 data class DirectionsRoute(
     val summary: DirectionsSummary,
+    val geometry: String? = null,
     val extras: DirectionsExtras? = null,
 )
 
@@ -47,6 +55,7 @@ data class DirectionsSummary(
 @Serializable
 data class DirectionsExtras(
     val tollways: TollwaysExtra? = null,
+    val waycategory: WayCategoryExtra? = null,
 )
 
 @Serializable
@@ -55,6 +64,12 @@ data class TollwaysExtra(
 )
 
 @Serializable
+data class WayCategoryExtra(
+    val values: List<List<Int>> = emptyList(),
+    val summary: List<TollwaySegment> = emptyList(),
+)
+
+@Serializable
 data class TollwaySegment(
-    val value: Int,
+    val value: Double,
 )

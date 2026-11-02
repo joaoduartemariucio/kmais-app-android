@@ -5,6 +5,12 @@ sealed class RouteLookupError(
 ) : Exception(cause) {
     data object NoApiKey : RouteLookupError()
 
+    data object InvalidApiKey : RouteLookupError()
+
+    data object QuotaExceeded : RouteLookupError()
+
+    data object NetworkUnavailable : RouteLookupError()
+
     data class PlaceNotFound(
         val text: String,
     ) : RouteLookupError()

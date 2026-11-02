@@ -15,6 +15,7 @@ import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceKind
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceRule
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RoutePoint
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
@@ -183,6 +184,14 @@ class RoomRepositoriesTests {
             assertEquals(listOf(later), routes.routes(vehicleId = later.vehicleId).filter { it.id == later.id })
             assertEquals(emptyList(), routes.routes(vehicleId = UUID.randomUUID()))
             assertDecimal("0.5", routes.routes().last().costPerKilometer)
+            assertDecimal("12", routes.routes().last().tollCost)
+            assertEquals(10.0, routes.routes().last().kilometersPerLiter, 0.001)
+            assertDecimal("5", routes.routes().last().pricePerLiter)
+
+            val path = listOf(RoutePoint(-23.55, -46.63), RoutePoint(-22.9, -43.17))
+            routes.save(later.copy(path = path))
+            assertEquals(path, routes.routes().first().path)
+            assertEquals(emptyList(), routes.routes().last().path)
 
             routes.save(earlier.copy(hasTolls = false))
             assertEquals(false, routes.routes().last().hasTolls)
@@ -203,6 +212,9 @@ class RoomRepositoriesTests {
         distanceKm = 100.0,
         isRoundTrip = true,
         hasTolls = true,
+        tollCost = BigDecimal("12"),
+        kilometersPerLiter = 10.0,
+        pricePerLiter = BigDecimal("5"),
         liters = 20.0,
         fuelCost = BigDecimal("100"),
         costPerKilometer = BigDecimal("0.5"),

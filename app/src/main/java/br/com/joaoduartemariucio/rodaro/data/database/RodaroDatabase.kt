@@ -25,7 +25,7 @@ import br.com.joaoduartemariucio.rodaro.data.vehicles.models.VehicleModel
         ServiceRuleModel::class,
         TripRouteModel::class,
     ],
-    version = 2,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -65,6 +65,28 @@ abstract class RodaroDatabase : RoomDatabase() {
                 }
             }
 
+        internal val MIGRATION_2_3 =
+            object : Migration(2, 3) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `trip_routes` ADD COLUMN `tollCost` TEXT NOT NULL DEFAULT '0'")
+                }
+            }
+
+        internal val MIGRATION_3_4 =
+            object : Migration(3, 4) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `trip_routes` ADD COLUMN `kilometersPerLiter` REAL NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE `trip_routes` ADD COLUMN `pricePerLiter` TEXT NOT NULL DEFAULT '0'")
+                }
+            }
+
+        internal val MIGRATION_4_5 =
+            object : Migration(4, 5) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `trip_routes` ADD COLUMN `path` TEXT NOT NULL DEFAULT ''")
+                }
+            }
+
         fun create(
             context: Context,
             inMemory: Boolean = false,
@@ -75,7 +97,7 @@ abstract class RodaroDatabase : RoomDatabase() {
                 } else {
                     Room.databaseBuilder(context, RodaroDatabase::class.java, FILE_NAME)
                 }
-            return builder.addMigrations(MIGRATION_1_2).build()
+            return builder.addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
         }
     }
 }

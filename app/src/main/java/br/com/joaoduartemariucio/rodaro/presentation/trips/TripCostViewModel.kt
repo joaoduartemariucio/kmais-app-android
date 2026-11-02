@@ -10,16 +10,21 @@ import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.calculations.Consumption
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
+import br.com.joaoduartemariucio.rodaro.domain.trips.calculations.TankPlan
 import br.com.joaoduartemariucio.rodaro.domain.trips.calculations.TripCost
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.PlaceSuggestion
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RoutePoint
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
 import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
 import br.com.joaoduartemariucio.rodaro.domain.trips.services.RouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.trips.services.UnavailableRouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.UnitConversion
 import java.math.BigDecimal
+import java.time.Instant
 import java.util.UUID
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -72,8 +77,21 @@ class TripCostViewModel(
     var origin by mutableStateOf("")
     var destination by mutableStateOf("")
     var hasTolls: Boolean? by mutableStateOf(null)
+    private var oneWayTollCost: BigDecimal? by mutableStateOf(null)
+    private var roundTripTollCost: BigDecimal? by mutableStateOf(null)
+    val tollCost: BigDecimal? get() = if (isRoundTrip) roundTripTollCost else oneWayTollCost
+    val totalCost: BigDecimal? get() = cost?.let { it.fuelCost + (tollCost ?: BigDecimal.ZERO) }
+    var routePath: List<RoutePoint> by mutableStateOf(emptyList())
+        private set
+    var originSuggestions: List<PlaceSuggestion> by mutableStateOf(emptyList())
+        private set
+    var destinationSuggestions: List<PlaceSuggestion> by mutableStateOf(emptyList())
+        private set
 
     var lookupState: LookupState by mutableStateOf(LookupState.Idle)
+        private set
+
+    var suggestionsWorking by mutableStateOf(false)
         private set
 
     var saving by mutableStateOf(false)
@@ -82,8 +100,16 @@ class TripCostViewModel(
     var saveError: Throwable? by mutableStateOf(null)
         private set
 
-    private var suggestedConsumption: String? by mutableStateOf(null)
-    private var suggestedPrice: String? by mutableStateOf(null)
+    var suggestedConsumption: String? by mutableStateOf(null)
+        private set
+    var suggestedPrice: String? by mutableStateOf(null)
+        private set
+    var averageConsumptionSamples: Int by mutableStateOf(0)
+        private set
+    var lastPriceDate: Instant? by mutableStateOf(null)
+        private set
+    private var editingRouteId: UUID? by mutableStateOf(null)
+    private var editingRouteCreatedAt: Instant? = null
 
     val parsedDistance: Double?
         get() = NumberInput.double(distance, NumberInput.Style.KILOMETERS)?.let(UnitConversion::distanceToKilometers)
@@ -96,6 +122,16 @@ class TripCostViewModel(
 
     val isUsingAverageConsumption: Boolean get() = suggestedConsumption != null && consumption == suggestedConsumption
     val isUsingLastPrice: Boolean get() = suggestedPrice != null && pricePerLiter == suggestedPrice
+    val canUseAverageConsumption: Boolean get() = suggestedConsumption != null && !isUsingAverageConsumption
+    val canUseLastPrice: Boolean get() = suggestedPrice != null && !isUsingLastPrice
+    val isEditing: Boolean get() = editingRouteId != null
+
+    val tankPlan: TankPlan?
+        get() {
+            val cost = cost ?: return null
+            val consumption = parsedConsumption ?: return null
+            return TankPlan.of(cost.liters, consumption, selectedVehicle?.tankCapacity)
+        }
 
     val canLookupRealDistance: Boolean get() = origin.isNotBlank() && destination.isNotBlank() && lookupState !is LookupState.Working
 
@@ -142,29 +178,37 @@ class TripCostViewModel(
     suspend fun select(vehicle: Vehicle) {
         selectedVehicle = vehicle
         analytics.event("route_vehicle_selected")
-        try {
-            val fuel = fuelEntryRepository.entries(vehicle.id)
-            val average = Consumption.average(fuel)
-            val lastPrice = fuel.sortedChronologically().lastOrNull()?.pricePerLiter
-            applySuggestions(
-                consumption = average?.let { NumberInput.text(UnitConversion.consumption(it), NumberInput.Style.CONSUMPTION) },
-                price = lastPrice?.let { NumberInput.text(UnitConversion.perVolume(it), NumberInput.Style.FUEL_PRICE) },
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            state = State.Failed(error)
-        }
+        loadSuggestions(vehicle, overwrite = true)
+    }
+
+    fun useAverageConsumption() {
+        suggestedConsumption?.let { consumption = it }
+    }
+
+    fun useLastPrice() {
+        suggestedPrice?.let { pricePerLiter = it }
+    }
+
+    fun swapPlaces() {
+        clearLookup()
+        val previousOrigin = origin
+        origin = destination
+        destination = previousOrigin
+        originSuggestions = emptyList()
+        destinationSuggestions = emptyList()
     }
 
     suspend fun lookupRealDistance() {
         if (!canLookupRealDistance) return
         lookupState = LookupState.Working
         try {
-            val estimate = routeEstimateProvider.estimate(origin.trim(), destination.trim())
+            val estimate = routeEstimateProvider.estimate(origin.trim(), destination.trim(), selectedVehicle?.kind ?: VehicleKind.CAR)
             distance = NumberInput.text(UnitConversion.distance(estimate.distanceKm), NumberInput.Style.KILOMETERS)
             isRoundTrip = false
             hasTolls = estimate.hasTolls
+            oneWayTollCost = estimate.tollCost
+            roundTripTollCost = estimate.roundTripTollCost
+            routePath = estimate.path
             lookupState = LookupState.Done
             analytics.event(
                 "route_distance_looked_up",
@@ -177,29 +221,63 @@ class TripCostViewModel(
         }
     }
 
+    suspend fun updateOrigin(text: String) {
+        if (text != origin) clearLookup()
+        origin = text
+        originSuggestions = suggestions(text)
+    }
+
+    suspend fun updateDestination(text: String) {
+        if (text != destination) clearLookup()
+        destination = text
+        destinationSuggestions = suggestions(text)
+    }
+
+    fun selectOriginSuggestion(suggestion: PlaceSuggestion) {
+        if (suggestion.label != origin) clearLookup()
+        origin = suggestion.label
+        originSuggestions = emptyList()
+        analytics.event("route_place_suggestion_selected", mapOf("field" to "origin"))
+    }
+
+    fun selectDestinationSuggestion(suggestion: PlaceSuggestion) {
+        if (suggestion.label != destination) clearLookup()
+        destination = suggestion.label
+        destinationSuggestions = emptyList()
+        analytics.event("route_place_suggestion_selected", mapOf("field" to "destination"))
+    }
+
     suspend fun saveRoute(): Boolean {
         val vehicle = selectedVehicle ?: return false
         val cost = cost ?: return false
         if (!canSaveInputs) return false
+        val routeId = editingRouteId ?: UUID.randomUUID()
+        val routeCreatedAt = editingRouteCreatedAt ?: dateProvider.now
         saving = true
         saveError = null
         return try {
             routeRepository.save(
                 SavedRoute(
-                    id = UUID.randomUUID(),
+                    id = routeId,
                     vehicleId = vehicle.id,
                     origin = origin.trim(),
                     destination = destination.trim(),
                     distanceKm = parsedDistance ?: return false,
                     isRoundTrip = isRoundTrip,
                     hasTolls = hasTolls ?: false,
+                    tollCost = tollCost ?: BigDecimal.ZERO,
+                    kilometersPerLiter = parsedConsumption ?: return false,
+                    pricePerLiter = parsedPrice ?: return false,
                     liters = cost.liters,
                     fuelCost = cost.fuelCost,
                     costPerKilometer = cost.costPerKilometer,
-                    createdAt = dateProvider.now,
+                    createdAt = routeCreatedAt,
+                    path = routePath,
                 ),
             )
             savedRoutes = routeRepository.routes()
+            editingRouteId = routeId
+            editingRouteCreatedAt = routeCreatedAt
             analytics.event(
                 "route_saved",
                 mapOf(
@@ -230,26 +308,99 @@ class TripCostViewModel(
         }
     }
 
-    fun restoreRoute(route: SavedRoute) {
+    suspend fun restoreRoute(route: SavedRoute) {
+        editingRouteId = route.id
+        editingRouteCreatedAt = route.createdAt
+        selectedVehicle = vehicles.firstOrNull { it.id == route.vehicleId }
         origin = route.origin
         destination = route.destination
         distance = NumberInput.text(UnitConversion.distance(route.distanceKm), NumberInput.Style.KILOMETERS)
         isRoundTrip = route.isRoundTrip
         hasTolls = route.hasTolls
+        val savedToll = route.tollCost.takeIf { it.signum() > 0 }
+        oneWayTollCost = if (route.isRoundTrip) null else savedToll
+        roundTripTollCost = if (route.isRoundTrip) savedToll else null
+        routePath = route.path
+        consumption =
+            if (route.kilometersPerLiter <= 0) {
+                ""
+            } else {
+                NumberInput.text(UnitConversion.consumption(route.kilometersPerLiter), NumberInput.Style.CONSUMPTION)
+            }
+        pricePerLiter =
+            if (route.pricePerLiter.signum() <= 0) {
+                ""
+            } else {
+                NumberInput.text(UnitConversion.perVolume(route.pricePerLiter), NumberInput.Style.FUEL_PRICE)
+            }
+        selectedVehicle?.let { loadSuggestions(it, overwrite = false) }
+    }
+
+    private fun clearLookup() {
+        hasTolls = null
+        oneWayTollCost = null
+        roundTripTollCost = null
+        routePath = emptyList()
+        if (lookupState !is LookupState.Working) lookupState = LookupState.Idle
+    }
+
+    private suspend fun loadSuggestions(
+        vehicle: Vehicle,
+        overwrite: Boolean,
+    ) {
+        try {
+            val fuel = fuelEntryRepository.entries(vehicle.id)
+            val average = Consumption.average(fuel)
+            val last = fuel.sortedChronologically().lastOrNull()
+            applySuggestions(
+                consumption = average?.let { NumberInput.text(UnitConversion.consumption(it), NumberInput.Style.CONSUMPTION) },
+                price = last?.pricePerLiter?.let { NumberInput.text(UnitConversion.perVolume(it), NumberInput.Style.FUEL_PRICE) },
+                overwrite = overwrite,
+            )
+            averageConsumptionSamples = if (average == null) 0 else Consumption.intervals(fuel).size
+            lastPriceDate = last?.date
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            state = State.Failed(error)
+        }
     }
 
     private fun applySuggestions(
         consumption: String?,
         price: String?,
+        overwrite: Boolean = true,
     ) {
-        if (this.consumption.isEmpty() || isUsingAverageConsumption) this.consumption = consumption.orEmpty()
-        if (pricePerLiter.isEmpty() || isUsingLastPrice) pricePerLiter = price.orEmpty()
+        if (overwrite && (this.consumption.isEmpty() || isUsingAverageConsumption)) this.consumption = consumption.orEmpty()
+        if (overwrite && (pricePerLiter.isEmpty() || isUsingLastPrice)) pricePerLiter = price.orEmpty()
         suggestedConsumption = consumption
         suggestedPrice = price
     }
 
     private fun clearSuggestions() {
         applySuggestions(consumption = null, price = null)
+        averageConsumptionSamples = 0
+        lastPriceDate = null
         selectedVehicle = null
+    }
+
+    private suspend fun suggestions(query: String): List<PlaceSuggestion> {
+        val text = query.trim()
+        if (text.length < MIN_SUGGESTION_QUERY) return emptyList()
+        suggestionsWorking = true
+        return try {
+            routeEstimateProvider.suggestions(text).take(MAX_SUGGESTIONS)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            emptyList()
+        } finally {
+            suggestionsWorking = false
+        }
+    }
+
+    companion object {
+        private const val MIN_SUGGESTION_QUERY = 3
+        private const val MAX_SUGGESTIONS = 5
     }
 }

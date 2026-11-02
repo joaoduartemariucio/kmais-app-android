@@ -13,6 +13,7 @@ import com.google.android.gms.ads.AdView
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
+    if (!AdMobGate.enabledState) return
     val unitId = stringResource(R.string.admob_banner_unit_id)
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val width = maxWidth.value.toInt()

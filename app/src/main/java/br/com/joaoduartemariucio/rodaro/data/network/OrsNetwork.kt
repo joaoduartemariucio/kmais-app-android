@@ -21,10 +21,16 @@ object OrsNetwork {
                 OkHttpClient
                     .Builder()
                     .addInterceptor { chain ->
-                        chain.proceed(
-                            chain
-                                .request()
+                        val request = chain.request()
+                        val url =
+                            request.url
                                 .newBuilder()
+                                .addQueryParameter("api_key", apiKey)
+                                .build()
+                        chain.proceed(
+                            request
+                                .newBuilder()
+                                .url(url)
                                 .addHeader("Authorization", apiKey)
                                 .build(),
                         )

@@ -34,6 +34,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 @SuppressLint("InflateParams")
 @Composable
 fun AdNative(modifier: Modifier = Modifier) {
+    if (!AdMobGate.enabledState) return
     val context = LocalContext.current
     val unitId = stringResource(R.string.admob_native_unit_id)
     var ad by remember { mutableStateOf<NativeAd?>(null) }
