@@ -6,4 +6,6 @@ interface PreferencesRepository {
     suspend fun get(): Preferences
 
     suspend fun save(preferences: Preferences)
+
+    suspend fun clear()
 }

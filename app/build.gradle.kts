@@ -167,6 +167,7 @@ dependencies {
     implementation(libs.firebase.perf)
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.config)
+    implementation(libs.firebase.installations)
     implementation(libs.firebase.auth)
     implementation(libs.play.services.ads)
     implementation(libs.androidx.credentials)

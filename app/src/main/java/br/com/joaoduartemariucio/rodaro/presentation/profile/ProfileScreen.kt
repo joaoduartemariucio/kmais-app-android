@@ -63,12 +63,11 @@ import br.com.joaoduartemariucio.rodaro.app.LocalDependencies
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Account
 import br.com.joaoduartemariucio.rodaro.presentation.common.FailureMessage
 import br.com.joaoduartemariucio.rodaro.presentation.common.Palette
+import br.com.joaoduartemariucio.rodaro.presentation.common.PrivacyLinks
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionCard
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionDivider
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionHeader
 import kotlinx.coroutines.launch
-
-private const val PRIVACY_URL = "https://rodaro.web.app/privacidade"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,8 +173,20 @@ fun ProfileScreen(
     if (confirmingDelete) {
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
-            title = { Text(stringResource(R.string.delete_confirm_title)) },
-            text = { Text(stringResource(R.string.delete_confirm_message)) },
+            title = {
+                Text(
+                    stringResource(
+                        if (viewModel.account == null) R.string.delete_local_confirm_title else R.string.delete_confirm_title,
+                    ),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (viewModel.account == null) R.string.delete_local_confirm_message else R.string.delete_confirm_message,
+                    ),
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -263,7 +274,13 @@ fun ProfileScreen(
             AlertDialog(
                 onDismissRequest = { viewModel.dismissDeleteResult() },
                 title = { Text(stringResource(R.string.delete_done_title)) },
-                text = { Text(stringResource(R.string.delete_done_message)) },
+                text = {
+                    Text(
+                        stringResource(
+                            if (viewModel.removedAccount) R.string.delete_done_message else R.string.delete_local_done_message,
+                        ),
+                    )
+                },
                 confirmButton = {
                     TextButton(onClick = { viewModel.dismissDeleteResult() }) { Text(stringResource(R.string.ok)) }
                 },
@@ -359,14 +376,13 @@ private fun PrivacySection(
     onDelete: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
-    val isWorking = viewModel.deleteState == ProfileViewModel.DeleteState.Working
 
     SectionHeader(stringResource(R.string.privacy))
     SectionCard {
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable { uriHandler.openUri(PRIVACY_URL) }
+                .clickable { uriHandler.openUri(PrivacyLinks.POLICY) }
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -380,11 +396,11 @@ private fun PrivacySection(
         SectionDivider()
         Button(
             onClick = onDelete,
-            enabled = viewModel.account != null && !isWorking,
+            enabled = viewModel.canDelete,
             colors = ButtonDefaults.buttonColors(containerColor = Palette.red, contentColor = Color.White),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(stringResource(R.string.delete_account_data))
+            Text(stringResource(if (viewModel.account == null) R.string.delete_local_data else R.string.delete_account_data))
         }
     }
 }

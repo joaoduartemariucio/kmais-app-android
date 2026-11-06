@@ -3,7 +3,6 @@ package br.com.joaoduartemariucio.rodaro.presentation.common.ads
 import android.content.Context
 import br.com.joaoduartemariucio.rodaro.R
 import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
@@ -27,7 +26,7 @@ object InterstitialAds {
         InterstitialAd.load(
             application,
             application.getString(R.string.admob_interstitial_unit_id),
-            AdRequest.Builder().build(),
+            AdMobGate.request(),
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(loaded: InterstitialAd) {
                     ad = loaded

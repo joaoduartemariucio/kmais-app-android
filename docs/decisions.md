@@ -7,6 +7,39 @@ why, and what it costs. Newest first within each group. Product decisions are sh
 
 ## Platform parity
 
+### Android: privacy controls (LGPD)
+
+Result of the LGPD audit in `.lgpd/gaps.md` (2026-11-06). The privacy policy v2 describes all of it.
+
+- **Statistics are opt-out, personalized ads are opt-in.** `Preferences.usageStatisticsEnabled`
+  (default on) switches Analytics, Crashlytics and Performance together; the legal basis is
+  legitimate interest, which needs a way to object (LGPD art. 18, § 2º) but not prior consent.
+  `Preferences.personalizedAdsEnabled` (default off) is consent (art. 7º, I): until it is on,
+  every ad request goes through `AdMobGate.request()`, which adds `npa=1` so AdMob serves
+  non-personalized ads. Ads themselves stay on — they keep the app free. Analytics Consent Mode
+  follows the same two switches: `ANALYTICS_STORAGE` with statistics, `AD_STORAGE`,
+  `AD_USER_DATA` and `AD_PERSONALIZATION` only with personalized ads.
+- **Applied in `app/PrivacySettings`**, at start-up (`FirebaseSetup`, from `PreferenceGate`) and
+  whenever either switch changes (`PreferencesViewModel.applyPrivacy`). Firebase persists the
+  collection flags, so the choice also holds before `FirebaseSetup` runs on the next launch.
+- **Why not Google's UMP consent form:** its message types target GDPR and US-state laws; the
+  in-app switch is the same choice, in the app's own settings, with nothing to configure in the
+  AdMob console.
+- **Deleting data works without an account.** Profile shows "Apagar dados deste aparelho" when
+  nobody is signed in. `clearLocalData` cancels WorkManager, drops notifications,
+  `clearAllTables()`, clears the preferences (keeping only the statistics choice, so an objection
+  survives the wipe; personalized ads go back to off), and resets the Firebase identifiers —
+  Analytics data, unsent crash reports, the FCM token and the Firebase Installation id — so
+  nothing collected before can be linked to what comes after. A failed reset (offline) is logged
+  and does not block the deletion.
+- **`AdMobGate` starts disabled**, like the `enableAdMob` Remote Config default, so no ad loads
+  before the flag is known on a first launch.
+- **Still sent twice:** the OpenRouteService key goes in the `Authorization` header and the
+  `api_key` query parameter. The query parameter was added on purpose with the trip cost feature;
+  drop it only after checking that every ORS endpoint the app calls accepts the header alone.
+- **Cost:** two more switches to keep honest with the policy; the copy in
+  `values*/strings.xml` and `privacidade.html` must change together.
+
 ### Android: Firebase Authentication and account deletion
 
 The account is **optional**: every screen works without one, and sign-in lives in the Profile tab
@@ -26,8 +59,8 @@ The account is **optional**: every screen works without one, and sign-in lives i
 - **Deleting from the app:** Profile → "Excluir conta e dados" calls `currentUser.delete()`.
   `REQUIRES_RECENT_LOGIN` opens a confirm step — the password for e-mail accounts, a second Google
   sign-in for Google ones — instead of failing, and only after the account is gone does
-  `AppDependencies.clearLocalData` cancel WorkManager, drop notifications and `clearAllTables()`.
-  The privacy site teaches the same steps (`hosting/public/privacidade.html`, section 12).
+  `AppDependencies.clearLocalData` run (see "Android: privacy controls (LGPD)").
+  The privacy site teaches the same steps (`hosting/public/privacidade.html`, section 13).
 - **Why optional:** the app is local-first; a mandatory login would lock people out of what
   already works offline, and neither Analytics nor AdMob needs an account.
 
@@ -681,6 +714,40 @@ OpenRouteService key or the keystore stored there. Releases are therefore built 
   internal, so production is never reached by accident.
 - **Cost:** a release is a manual run, and the first bundle of a new app must
   still be uploaded to Play by hand before the API accepts uploads.
+
+### Debug builds log requests and analytics under `Rodaro.*` tags
+
+Logcat on an emulator is mostly system noise, so the app writes its own entries with tags
+that start with `Rodaro.`, only in debug builds (`app/DebugLog`):
+
+- `Rodaro.Http`: one framed block per request (`┌ #3 → POST url`, headers, body) and one per
+  response (`┌ #3 ← 200 OK … in 120 ms`, headers, body) or failure (`┌ #3 ✕ FAILED …`). The
+  number pairs a response with its request when several run at once. JSON bodies are
+  pretty-printed; binary bodies show only their size, and text is cut at 2,500 characters so an
+  entry stays under Logcat's size limit. The response is read with `peekBody`, so the app still
+  gets the whole body. `HttpLogInterceptor` runs after the interceptor that adds the ORS key, so
+  the headers are the ones really sent, but `Authorization`, `Cookie`, `Set-Cookie` and
+  `X-Api-Key` are shown as `██ (hidden)` and `api_key`, `key` and `token` are dropped from the
+  URL; a test checks the key never reaches the log.
+- `Rodaro.Analytics`: every screen and event, through `LoggingAnalytics`, which wraps the
+  Firebase tracker and still forwards everything to it.
+- `Rodaro.Reminders` and `Rodaro.Startup`: the existing error logs, renamed to share the prefix.
+
+`make logs` runs `adb logcat -s` with those tags plus `AndroidRuntime:E` for crashes; in Android
+Studio the same view is the filter `package:mine tag~:Rodaro`. Release builds log nothing.
+
+### Place suggestions wait for a pause in typing
+
+The origin and destination fields ask OpenRouteService for suggestions only after 400 ms
+without a new keystroke, and each new keystroke cancels the search still waiting or running
+for that field (cancelling the coroutine also cancels the OkHttp call). Picking a suggestion
+cancels the pending search too, so a late answer cannot reopen the list. Text shorter than
+three letters clears the list at once without a request.
+
+- **Why:** typing "Campinas" used to send six requests in parallel; on the free ORS quota,
+  shared by every user, that is most of the cost of the screen, and on a slow network the
+  answers arrived out of order.
+- **Cost:** suggestions appear 400 ms later than before.
 
 ## Tooling
 

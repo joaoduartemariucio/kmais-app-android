@@ -42,7 +42,7 @@ def changed_lines(base, source_dir):
 
     untracked = run("git", "ls-files", "--others", "--exclude-standard", "--", f"{source_dir}/*.kt").split()
     for path in untracked:
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             changes[path] = set(range(1, sum(1 for _ in file) + 1))
     return changes
 
@@ -50,7 +50,7 @@ def changed_lines(base, source_dir):
 def ignored_patterns(path):
     if not path or not os.path.exists(path):
         return []
-    with open(path) as file:
+    with open(path, encoding="utf-8") as file:
         return [line.strip() for line in file if line.strip() and not line.startswith("#")]
 
 
@@ -126,7 +126,7 @@ def main():
     report = "\n".join(summary)
     print(report)
     if summary_path := os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(summary_path, "a") as file:
+        with open(summary_path, "a", encoding="utf-8") as file:
             file.write("## Coverage\n\n" + report + "\n")
 
     if not passed:

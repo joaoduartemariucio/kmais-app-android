@@ -34,4 +34,6 @@ data class Preferences(
     val currency: CurrencyOption? = null,
     val unitSystem: UnitSystem = UnitSystem.METRIC,
     val language: LanguageOption = LanguageOption.SYSTEM,
+    val usageStatisticsEnabled: Boolean = true,
+    val personalizedAdsEnabled: Boolean = false,
 )

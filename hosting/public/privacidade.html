@@ -60,15 +60,17 @@
   </header>
 
   <h1>Política de Privacidade</h1>
-  <p class="updated">Vigente desde 28 de outubro de 2026</p>
+  <p class="updated">Versão 2 · vigente desde 6 de novembro de 2026</p>
 
   <section>
     <h2>Resumo</h2>
     <p>O Rodaro é um app para acompanhar a manutenção de carros e motos: abastecimentos, consumo real, custo por km, lembretes de revisão e cálculo do custo de uma viagem. Ele funciona sem conta e sem servidor próprio; entrar com uma conta é opcional.</p>
     <div class="summary">
       <div><b>Conta opcional</b>Sem conta o app funciona igual. Se você entrar com Google ou e-mail, guardamos apenas o cadastro da conta.</div>
-      <div><b>Seus registros ficam no aparelho</b>Veículos, abastecimentos e serviços não são enviados para nós.</div>
-      <div><b>Serviços do Google</b>Estatísticas de uso, relatórios de falhas, desempenho, notificações e anúncios.</div>
+      <div><b>Seus registros ficam no aparelho</b>Veículos, abastecimentos, serviços e rotas salvas não são enviados para nós.</div>
+      <div><b>Cálculo de rota</b>Origem e destino que você digita vão ao OpenRouteService só para achar a distância.</div>
+      <div><b>Serviços do Google</b>Estatísticas de uso, relatórios de falhas, desempenho, notificações e anúncios. Você pode desligar as estatísticas no app.</div>
+      <div><b>Anúncios sem perfil por padrão</b>Anúncios personalizados só se você ativar em Preferências.</div>
       <div><b>Não vendemos dados</b>Nenhuma informação sua é vendida ou alugada.</div>
     </div>
   </section>
@@ -79,6 +81,7 @@
       <ol>
         <li><a href="#quem">Quem é o responsável</a></li>
         <li><a href="#cadastrados">Dados que você cadastra</a></li>
+        <li><a href="#rotas">Cálculo de rota e mapas</a></li>
         <li><a href="#automaticos">Dados coletados automaticamente</a></li>
         <li><a href="#anuncios">Anúncios e ID de publicidade</a></li>
         <li><a href="#notificacoes">Notificações</a></li>
@@ -104,22 +107,53 @@
 
   <section id="cadastrados">
     <h2>2. Dados que você cadastra</h2>
-    <p>Tudo o que você digita no Rodaro fica salvo <b>somente no banco de dados do seu aparelho</b>. Não temos servidor próprio e não recebemos uma cópia desses registros.</p>
+    <p>Tudo o que você digita no Rodaro fica salvo <b>somente no banco de dados do seu aparelho</b>. Não temos servidor próprio e não recebemos uma cópia desses registros. A única exceção é a origem e o destino de uma rota, que são enviados ao OpenRouteService para calcular a distância (<a href="#rotas">seção 3</a>).</p>
     <p>Se você optar por entrar com Google ou com e-mail e senha, o <b>Firebase Authentication</b> guarda o cadastro da sua conta (e-mail e, no login com Google, o nome que a sua conta Google fornece) somente para manter você conectado. Nada disso é usado para os seus registros de veículos, que continuam só no aparelho.</p>
     <ul>
       <li><b>Veículos:</b> nome ou apelido, tipo (carro ou moto), placa (opcional), quilometragem inicial, capacidade do tanque (opcional), data de cadastro e se está arquivado.</li>
       <li><b>Abastecimentos:</b> data, quilometragem, litros, preço por litro e se o tanque foi completado.</li>
       <li><b>Serviços de manutenção:</b> tipo de serviço (troca de óleo, pneus, filtros etc.), data, quilometragem, custo e observações que você escrever.</li>
       <li><b>Lembretes:</b> intervalo em quilômetros e/ou meses de cada serviço.</li>
-      <li><b>Cálculo de rota:</b> distância, consumo e preço digitados para estimar o custo de uma viagem. Esses valores não são salvos; o app só os usa na tela.</li>
+      <li><b>Rotas:</b> origem e destino (o texto que você digitar), distância, ida e volta, pedágio, consumo, preço do combustível, custos calculados, data e o traçado da rota no mapa. Ficam salvas no aparelho quando você toca em salvar; um cálculo não salvo só aparece na tela.</li>
+      <li><b>Preferências:</b> moeda, unidades, idioma, notificações, estatísticas de uso e anúncios personalizados.</li>
     </ul>
     <p>Com esses registros o app calcula, no próprio aparelho, consumo médio, custo por km, gastos do mês e quando cada revisão vence. Evite escrever nas observações informações pessoais que você não queira guardar no celular.</p>
-    <p>Para apagar tudo de uma vez, use <b>Perfil → Privacidade e dados → Excluir conta e dados</b> no app, como explicado na <a href="#excluir">seção 12</a>. Também dá para apagar registro por registro, limpar os dados do app nas configurações do Android ou desinstalar o Rodaro.</p>
+    <p>Para apagar tudo de uma vez, use <b>Perfil → Privacidade e dados</b> no app: <b>Apagar dados deste aparelho</b> se você não entrou com uma conta, ou <b>Excluir conta e dados</b> se entrou, como explicado na <a href="#excluir">seção 13</a>. Também dá para apagar registro por registro, limpar os dados do app nas configurações do Android ou desinstalar o Rodaro.</p>
+  </section>
+
+  <section id="rotas">
+    <h2>3. Cálculo de rota e mapas</h2>
+    <p>Quando você pede a distância real de uma viagem, o Rodaro usa serviços de terceiros. Evite digitar seu endereço completo se não quiser; o nome da cidade ou de um ponto conhecido já basta.</p>
+    <div class="table">
+      <table>
+        <thead>
+          <tr><th>Serviço</th><th>O que recebe</th><th>Para quê</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Serviço"><b>OpenRouteService</b> (Heidelberg Institute for Geoinformation Technology – HeiGIT, Alemanha)</td>
+            <td data-label="O que recebe">O texto de origem e destino enquanto você digita (sugestões de lugares), as coordenadas encontradas, o endereço IP do aparelho e a chave de acesso do app. Não recebe sua conta, seus veículos nem seus gastos.</td>
+            <td data-label="Para quê">Sugerir lugares, achar as coordenadas e calcular distância, duração, pedágios e o traçado da rota.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>OpenFreeMap</b></td>
+            <td data-label="O que recebe">Pedidos das partes do mapa (tiles) da região da rota e o endereço IP do aparelho.</td>
+            <td data-label="Para quê">Desenhar o mapa da rota na tela.</td>
+          </tr>
+          <tr>
+            <td data-label="Serviço"><b>Google Maps e Waze</b></td>
+            <td data-label="O que recebe">Origem e destino (ou as coordenadas do destino), só quando você toca em abrir a rota em um desses apps.</td>
+            <td data-label="Para quê">Abrir a navegação no app escolhido, sob a política de privacidade dele.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">Esses serviços tratam os dados conforme as próprias políticas, publicadas em <a href="https://openrouteservice.org">openrouteservice.org</a> e <a href="https://openfreemap.org">openfreemap.org</a>. O OpenRouteService fica na Alemanha (União Europeia), sob o Regulamento Geral de Proteção de Dados (GDPR).</p>
   </section>
 
   <section id="automaticos">
-    <h2>3. Dados coletados automaticamente</h2>
-    <p>Para entender como o app é usado, corrigir falhas, medir desempenho, enviar avisos e exibir anúncios, o Rodaro usa serviços do Google. Eles coletam dados técnicos do aparelho e de uso. <b>Nenhum deles recebe seus registros de veículos, abastecimentos ou serviços.</b></p>
+    <h2>4. Dados coletados automaticamente</h2>
+    <p>Para entender como o app é usado, corrigir falhas, medir desempenho, enviar avisos e exibir anúncios, o Rodaro usa serviços do Google. Eles coletam dados técnicos do aparelho e de uso. <b>Nenhum deles recebe seus registros de veículos, abastecimentos, serviços ou rotas.</b> Estatísticas de uso, relatórios de falha e medições de desempenho podem ser desligados em <b>Perfil → Preferências → Privacidade → Estatísticas de uso e relatórios de falha</b>.</p>
     <div class="table">
       <table>
         <thead>
@@ -168,7 +202,7 @@
   </section>
 
   <section id="anuncios">
-    <h2>4. Anúncios e ID de publicidade</h2>
+    <h2>5. Anúncios e ID de publicidade</h2>
     <p>O Rodaro é gratuito e exibe anúncios do Google AdMob:</p>
     <ul>
       <li><b>Banner</b> no fim da tela de cálculo de rota e no fim de cada formulário (novo abastecimento, novo serviço, novo veículo).</li>
@@ -177,7 +211,8 @@
       <li><b>Anúncio de abertura</b> quando você abre o app.</li>
     </ul>
     <p>Nenhum anúncio fica dentro dos campos de um formulário nem cobre o conteúdo da tela.</p>
-    <p>O AdMob pode usar o ID de publicidade do Android para mostrar anúncios mais relevantes (anúncios personalizados) e para limitar quantas vezes você vê o mesmo anúncio. Você controla isso no próprio Android:</p>
+    <p><b>Por padrão, os anúncios não são personalizados.</b> O app pede ao AdMob anúncios não personalizados, que usam apenas informações do contexto (como idioma e região aproximada) e o ID de publicidade para limitar repetições, medir resultados e evitar fraudes.</p>
+    <p>Se você quiser anúncios mais relevantes, ative <b>Perfil → Preferências → Privacidade → Anúncios personalizados</b>. Com isso, o AdMob pode usar o ID de publicidade para escolher anúncios pelo seu perfil de interesses. Você pode desligar a qualquer momento no mesmo lugar, e também controlar o ID no próprio Android:</p>
     <ul>
       <li>Em <b>Configurações → Google → Anúncios</b> (ou <b>Configurações → Privacidade → Anúncios</b>, dependendo do aparelho), toque em <b>Excluir ID de publicidade</b>. Depois disso, os anúncios deixam de ser personalizados com base nesse ID.</li>
       <li>Em <a href="https://myadcenter.google.com/?hl=pt-BR">Minha Central de Anúncios do Google</a> você também pode ajustar a personalização dos anúncios na sua conta.</li>
@@ -185,7 +220,7 @@
   </section>
 
   <section id="notificacoes">
-    <h2>5. Notificações</h2>
+    <h2>6. Notificações</h2>
     <p>O Rodaro usa notificações de dois tipos, e só as exibe se você permitir:</p>
     <ul>
       <li><b>Lembretes de revisão:</b> agendados no próprio aparelho, a partir dos lembretes que você configurou. O título e o texto são montados no celular e não passam por nenhum servidor.</li>
@@ -195,41 +230,52 @@
   </section>
 
   <section id="backup">
-    <h2>6. Backup do Android</h2>
+    <h2>7. Backup do Android</h2>
     <p>O Rodaro permite o backup automático do Android. Se ele estiver ativado no seu aparelho, os dados do app, incluindo seus registros, podem ser copiados de forma criptografada para o armazenamento da <b>sua</b> conta Google e restaurados quando você instalar o app em outro aparelho. Esse backup é feito pelo Android e fica na sua conta; nós não temos acesso a ele. Você pode desativá-lo em <b>Configurações → Google → Backup</b>.</p>
   </section>
 
   <section id="permissoes">
-    <h2>7. Permissões do app</h2>
+    <h2>8. Permissões do app</h2>
     <ul>
       <li><b>Notificações</b> (<code>POST_NOTIFICATIONS</code>): para exibir lembretes e avisos. O app só pede essa permissão quando há algo para lembrar.</li>
-      <li><b>Internet e estado da rede:</b> usados pelos serviços do Google descritos acima. O app funciona sem internet; só as estatísticas, anúncios e avisos dependem dela.</li>
-      <li><b>ID de publicidade</b> (<code>AD_ID</code>): usado pelo AdMob, conforme a seção 4.</li>
+      <li><b>Internet e estado da rede:</b> usados pelos serviços descritos nas seções 3 e 4. O app funciona sem internet; só o cálculo da distância real, o mapa, as estatísticas, os anúncios e os avisos dependem dela.</li>
+      <li><b>ID de publicidade</b> (<code>AD_ID</code>): usado pelo AdMob, conforme a seção 5.</li>
       <li><b>Execução após reiniciar e manter o aparelho ativo:</b> usadas pelo agendador do Android para que os lembretes continuem valendo depois que o celular é reiniciado.</li>
     </ul>
     <p>O Rodaro <b>não</b> acessa sua localização, contatos, câmera, microfone, fotos ou arquivos.</p>
   </section>
 
   <section id="compartilhamento">
-    <h2>8. Compartilhamento</h2>
-    <p>Não vendemos, alugamos nem trocamos seus dados. Os dados técnicos descritos na seção 3 são tratados pelo Google LLC, que atua como operador (e, no caso dos anúncios, também segundo suas próprias políticas). Esses dados podem ser processados em servidores fora do Brasil, com as salvaguardas previstas pelo Google para transferências internacionais.</p>
+    <h2>9. Compartilhamento</h2>
+    <p>Não vendemos, alugamos nem trocamos seus dados. Compartilhamos apenas o necessário com:</p>
+    <ul>
+      <li><b>Google LLC</b> (Estados Unidos): dados técnicos da seção 4, como operador; no caso dos anúncios, também segundo as políticas do próprio Google.</li>
+      <li><b>HeiGIT gGmbH</b>, responsável pelo OpenRouteService (Alemanha): origem e destino das rotas, como descrito na seção 3.</li>
+      <li><b>OpenFreeMap</b>: pedidos de partes do mapa, como descrito na seção 3.</li>
+    </ul>
+    <p>Esses serviços processam dados <b>fora do Brasil</b>. Para a conta, o cálculo de rota e o mapa, a transferência é necessária para executar o serviço que você pediu (LGPD, art. 33, IX). Para estatísticas, falhas, notificações e anúncios, ela se apoia nas garantias contratuais oferecidas pelo Google (art. 33, II).</p>
     <p>Podemos fornecer informações se formos obrigados por lei ou por ordem judicial.</p>
   </section>
 
   <section id="bases">
-    <h2>9. Bases legais (LGPD)</h2>
+    <h2>10. Bases legais (LGPD)</h2>
     <ul>
       <li><b>Seus registros no aparelho:</b> tratados por você, para a finalidade que você escolher; nós não temos acesso a eles.</li>
-      <li><b>Estatísticas, relatórios de falhas e desempenho:</b> legítimo interesse em manter o app funcionando e melhorá-lo (art. 7º, IX).</li>
-      <li><b>Anúncios:</b> legítimo interesse em manter o app gratuito, com a possibilidade de você limitar a personalização a qualquer momento (seção 4).</li>
+      <li><b>Conta opcional:</b> execução do serviço que você pediu ao criar a conta (art. 7º, V).</li>
+      <li><b>Cálculo de rota:</b> execução do serviço que você pediu ao tocar em buscar a distância (art. 7º, V).</li>
+      <li><b>Estatísticas, relatórios de falhas e desempenho:</b> legítimo interesse em manter o app funcionando e melhorá-lo (art. 7º, IX). Você pode se opor a qualquer momento desligando a opção em Preferências (art. 18, § 2º).</li>
+      <li><b>Anúncios não personalizados:</b> legítimo interesse em manter o app gratuito (art. 7º, IX).</li>
+      <li><b>Anúncios personalizados:</b> seu consentimento, dado ao ativar a opção em Preferências, que você pode revogar quando quiser (art. 7º, I e art. 8º, § 5º).</li>
       <li><b>Notificações:</b> seu consentimento, dado ao permitir as notificações no Android, que você pode revogar quando quiser.</li>
     </ul>
   </section>
 
   <section id="retencao">
-    <h2>10. Por quanto tempo guardamos</h2>
+    <h2>11. Por quanto tempo guardamos</h2>
     <ul>
-      <li><b>Seus registros:</b> ficam no aparelho até você apagá-los ou desinstalar o app.</li>
+      <li><b>Seus registros e rotas salvas:</b> ficam no aparelho até você apagá-los ou desinstalar o app.</li>
+      <li><b>Conta opcional:</b> até você excluí-la.</li>
+      <li><b>OpenRouteService e OpenFreeMap:</b> não guardamos nada nesses serviços; eles mantêm registros técnicos de acesso pelos prazos das próprias políticas.</li>
       <li><b>Dados do Google Analytics:</b> os dados por usuário e por evento ficam pelo período de retenção configurado no projeto (2 ou 14 meses); relatórios agregados podem ser mantidos por mais tempo.</li>
       <li><b>Relatórios de falha do Crashlytics:</b> mantidos por 90 dias.</li>
       <li><b>Demais serviços do Google:</b> pelos prazos definidos nas políticas do Google.</li>
@@ -237,28 +283,28 @@
   </section>
 
   <section id="direitos">
-    <h2>11. Seus direitos</h2>
+    <h2>12. Seus direitos</h2>
     <p>Pela LGPD (art. 18), você pode pedir confirmação de que tratamos seus dados, acesso, correção, anonimização, bloqueio ou eliminação de dados desnecessários, portabilidade, informações sobre compartilhamento e a revogação do consentimento.</p>
     <p>Se você não usou a conta opcional, os dados técnicos do Google não podem ser associados a você pelo nome ou e-mail. Na prática:</p>
     <ul>
-      <li><b>Seus registros</b> você mesmo acessa, corrige e apaga no app — ou apaga tudo de uma vez em <b>Perfil → Privacidade e dados → Excluir conta e dados</b>.</li>
-      <li><b>Sua conta</b>, se você criou, é excluída pelo próprio app, como mostramos na <a href="#excluir">seção 12</a>.</li>
-      <li><b>Dados de uso, falhas e notificações</b> deixam de ser coletados quando você desinstala o app. Para pedir a exclusão do que já foi coletado, fale com a gente pelo contato abaixo.</li>
-      <li><b>Anúncios personalizados</b> você controla pelo ID de publicidade (seção 4).</li>
+      <li><b>Seus registros</b> você mesmo acessa, corrige e apaga no app — ou apaga tudo de uma vez em <b>Perfil → Privacidade e dados</b>, com ou sem conta.</li>
+      <li><b>Sua conta</b>, se você criou, é excluída pelo próprio app, como mostramos na <a href="#excluir">seção 13</a>.</li>
+      <li><b>Dados de uso, falhas e desempenho</b> deixam de ser coletados quando você desliga <b>Estatísticas de uso e relatórios de falha</b> em Preferências ou desinstala o app. Ao apagar seus dados pelo app, os identificadores do app usados pelo Google são reiniciados. Para pedir a exclusão do que já foi coletado, fale com a gente pelo contato abaixo.</li>
+      <li><b>Anúncios personalizados</b> ficam desligados até você ativá-los, e você revoga o consentimento desligando a opção (seção 5).</li>
     </ul>
-    <p>Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (<a href="https://www.gov.br/anpd/pt-br">ANPD</a>).</p>
+    <p>Pedidos que o app não resolve sozinho são respondidos em até 15 dias pelo canal da <a href="#contato">seção 17</a> (art. 19, II). Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (<a href="https://www.gov.br/anpd/pt-br">ANPD</a>).</p>
   </section>
 
   <section id="excluir">
-    <h2>12. Como excluir sua conta e seus dados</h2>
+    <h2>13. Como excluir sua conta e seus dados</h2>
     <p>Excluir é rápido e você faz tudo pelo próprio app, sem precisar mandar e-mail nem esperar resposta.</p>
     <h3>Pelo app (forma mais simples)</h3>
     <ol>
       <li>Abra o Rodaro e toque em <b>Perfil</b>, a última aba de baixo.</li>
-      <li>Na seção <b>Privacidade e dados</b>, toque em <b>Excluir conta e dados</b>.</li>
-      <li>Leia o aviso e confirme em <b>Excluir</b>. O app explica que a conta e os registros do aparelho serão apagados.</li>
-      <li>Por segurança, o Firebase pode pedir sua senha (conta com e-mail) ou uma confirmação com o Google. Digite ou confirme quando solicitado.</li>
-      <li>Pronto: a conta sai do Firebase e todos os seus registros — veículos, abastecimentos, serviços e lembretes — são apagados deste aparelho.</li>
+      <li>Na seção <b>Privacidade e dados</b>, toque em <b>Excluir conta e dados</b> (se você entrou com uma conta) ou em <b>Apagar dados deste aparelho</b> (se não entrou).</li>
+      <li>Leia o aviso e confirme em <b>Excluir</b>. O app explica o que será apagado.</li>
+      <li>Se houver conta, por segurança o Firebase pode pedir sua senha (conta com e-mail) ou uma confirmação com o Google. Digite ou confirme quando solicitado.</li>
+      <li>Pronto: a conta, se houver, sai do Firebase; todos os seus registros — veículos, abastecimentos, serviços, rotas salvas, lembretes e preferências — são apagados deste aparelho; e os identificadores do app usados em estatísticas e notificações são reiniciados.</li>
     </ol>
     <h3>Se você não conseguiu entrar</h3>
     <ul>
@@ -268,29 +314,30 @@
     <h3>O que acontece depois</h3>
     <ul>
       <li>A conta e os registros saem do app e do Firebase.</li>
-      <li>Podem permanecer por prazo limitado nos backups do Android e nos relatórios já agregados dos serviços do Google, conforme a seção 10.</li>
+      <li>Podem permanecer por prazo limitado nos backups do Android e nos relatórios já agregados dos serviços do Google, conforme a seção 11.</li>
       <li>Sua conta Google continua existindo. Para revogar o acesso do app a ela, acesse <a href="https://myaccount.google.com/permissions">Minha conta → Apps e serviços</a> e remova o Rodaro.</li>
     </ul>
   </section>
 
   <section id="seguranca">
-    <h2>13. Segurança</h2>
+    <h2>14. Segurança</h2>
     <p>Seus registros ficam no armazenamento privado do app, que outros apps não podem ler, e são protegidos pelo bloqueio de tela e pela criptografia do Android. A comunicação com os serviços do Google é feita por conexões criptografadas (HTTPS). Nenhum sistema é totalmente seguro, mas evitamos guardar dados que não precisamos.</p>
   </section>
 
   <section id="criancas">
-    <h2>14. Crianças</h2>
-    <p>O Rodaro é voltado a motoristas e não é direcionado a menores de 13 anos. Não coletamos intencionalmente dados de crianças. Se você acredita que uma criança nos enviou dados, entre em contato para que possamos removê-los.</p>
+    <h2>15. Crianças</h2>
+    <p>O Rodaro é voltado a motoristas habilitados e não é direcionado a crianças nem a adolescentes (menores de 18 anos). Não coletamos intencionalmente dados de menores e não fazemos perfilamento publicitário de ninguém sem consentimento. Se você acredita que um menor usou o app ou criou uma conta, entre em contato para que possamos remover os dados.</p>
   </section>
 
   <section id="mudancas">
-    <h2>15. Mudanças nesta política</h2>
+    <h2>16. Mudanças nesta política</h2>
     <p>Podemos atualizar esta política quando o app mudar, por exemplo ao adicionar uma função ou um serviço. A data de vigência no topo indica a versão atual. Mudanças importantes também serão avisadas no próprio app ou na página da Play Store.</p>
   </section>
 
   <section id="contato">
-    <h2>16. Contato</h2>
-    <p>Dúvidas, pedidos sobre seus dados ou sugestões: <a href="mailto:joaovitorduartemariucio@gmail.com">joaovitorduartemariucio@gmail.com</a></p>
+    <h2>17. Contato</h2>
+    <p>O canal de atendimento ao titular e de comunicação com o encarregado pelo tratamento de dados pessoais (LGPD, art. 41) é: <b>João Vitor Duarte Mariucio</b>, <a href="mailto:joaovitorduartemariucio@gmail.com">joaovitorduartemariucio@gmail.com</a>.</p>
+    <p>Use esse e-mail para dúvidas, pedidos sobre seus dados ou sugestões. Respondemos em até 15 dias.</p>
   </section>
 
   <footer>© 2026 Rodaro · <a href="/">Início</a></footer>

@@ -19,6 +19,7 @@ class PreferencesViewModel(
     private val repository: PreferencesRepository,
     private val applyLanguage: (LanguageOption) -> Unit,
     private val syncReminders: suspend () -> Unit,
+    private val applyPrivacy: (Preferences) -> Unit = {},
     private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     var preferences: Preferences by mutableStateOf(Preferences())
@@ -53,6 +54,10 @@ class PreferencesViewModel(
 
     suspend fun setLanguage(language: LanguageOption) = save("language", preferences.copy(language = language))
 
+    suspend fun setUsageStatisticsEnabled(enabled: Boolean) = save("usage_statistics", preferences.copy(usageStatisticsEnabled = enabled))
+
+    suspend fun setPersonalizedAdsEnabled(enabled: Boolean) = save("personalized_ads", preferences.copy(personalizedAdsEnabled = enabled))
+
     private suspend fun save(
         key: String,
         updated: Preferences,
@@ -64,6 +69,11 @@ class PreferencesViewModel(
         state =
             try {
                 repository.save(updated)
+                if (updated.usageStatisticsEnabled != previous.usageStatisticsEnabled ||
+                    updated.personalizedAdsEnabled != previous.personalizedAdsEnabled
+                ) {
+                    applyPrivacy(updated)
+                }
                 analytics.event("preference_changed", mapOf("key" to key))
                 if (updated.remindersEnabled != previous.remindersEnabled) syncReminders()
                 if (updated.language != previous.language) applyLanguage(updated.language)

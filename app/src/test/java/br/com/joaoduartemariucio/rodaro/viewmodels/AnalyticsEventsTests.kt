@@ -169,7 +169,7 @@ class AnalyticsEventsTests {
                     InMemoryPreferencesRepository(),
                     {},
                     {},
-                    analytics,
+                    analytics = analytics,
                 )
             viewModel.load()
 

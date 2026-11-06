@@ -109,6 +109,6 @@ class ServiceReminderSync(
     }
 
     private companion object {
-        const val TAG = "reminders"
+        const val TAG = "Rodaro.Reminders"
     }
 }

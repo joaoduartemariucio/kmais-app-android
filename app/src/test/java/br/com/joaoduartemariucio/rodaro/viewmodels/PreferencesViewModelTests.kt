@@ -20,12 +20,14 @@ import kotlin.test.assertTrue
 class PreferencesViewModelTests {
     private var appliedLanguage: LanguageOption? = null
     private var reminderSyncs = 0
+    private val appliedPrivacy = mutableListOf<Preferences>()
 
     @After
     fun tearDown() {
         DisplayPreferences.update(Preferences())
         appliedLanguage = null
         reminderSyncs = 0
+        appliedPrivacy.clear()
     }
 
     private fun makeViewModel(repository: InMemoryPreferencesRepository) =
@@ -33,7 +35,53 @@ class PreferencesViewModelTests {
             repository = repository,
             applyLanguage = { appliedLanguage = it },
             syncReminders = { reminderSyncs += 1 },
+            applyPrivacy = { appliedPrivacy += it },
         )
+
+    @Test
+    fun `starts with statistics on and personalized ads off`() {
+        val defaults = Preferences()
+
+        assertTrue(defaults.usageStatisticsEnabled)
+        assertFalse(defaults.personalizedAdsEnabled)
+    }
+
+    @Test
+    fun `turning statistics off persists it and applies the privacy settings`() =
+        runTest {
+            val repository = InMemoryPreferencesRepository()
+            val viewModel = makeViewModel(repository)
+            viewModel.load()
+
+            viewModel.setUsageStatisticsEnabled(false)
+
+            assertFalse(repository.stored.usageStatisticsEnabled)
+            assertEquals(listOf(false), appliedPrivacy.map { it.usageStatisticsEnabled })
+        }
+
+    @Test
+    fun `opting in to personalized ads persists it and applies the privacy settings`() =
+        runTest {
+            val repository = InMemoryPreferencesRepository()
+            val viewModel = makeViewModel(repository)
+            viewModel.load()
+
+            viewModel.setPersonalizedAdsEnabled(true)
+
+            assertTrue(repository.stored.personalizedAdsEnabled)
+            assertEquals(listOf(true), appliedPrivacy.map { it.personalizedAdsEnabled })
+        }
+
+    @Test
+    fun `other preferences leave the privacy settings alone`() =
+        runTest {
+            val viewModel = makeViewModel(InMemoryPreferencesRepository())
+            viewModel.load()
+
+            viewModel.setCurrency(CurrencyOption.EUR)
+
+            assertTrue(appliedPrivacy.isEmpty())
+        }
 
     @Test
     fun `loads saved preferences into the display holder`() =

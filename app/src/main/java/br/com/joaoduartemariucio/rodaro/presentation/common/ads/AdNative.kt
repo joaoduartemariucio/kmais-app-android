@@ -25,7 +25,6 @@ import androidx.core.view.isVisible
 import br.com.joaoduartemariucio.rodaro.R
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
@@ -56,7 +55,7 @@ fun AdNative(modifier: Modifier = Modifier) {
             builder.build()
         }
 
-    LaunchedEffect(loader) { loader.loadAd(AdRequest.Builder().build()) }
+    LaunchedEffect(loader) { loader.loadAd(AdMobGate.request()) }
 
     DisposableEffect(Unit) {
         onDispose { ad?.destroy() }

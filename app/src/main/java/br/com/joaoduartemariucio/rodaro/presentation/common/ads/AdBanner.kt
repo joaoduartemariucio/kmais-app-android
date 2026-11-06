@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import br.com.joaoduartemariucio.rodaro.R
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 
@@ -23,7 +22,7 @@ fun AdBanner(modifier: Modifier = Modifier) {
                 AdView(context).apply {
                     setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, width))
                     adUnitId = unitId
-                    loadAd(AdRequest.Builder().build())
+                    loadAd(AdMobGate.request())
                 }
             },
             onRelease = { it.destroy() },

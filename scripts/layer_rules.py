@@ -66,7 +66,7 @@ def main():
         expression = re.compile(regex)
         for path in sorted(SOURCE.glob(pattern)):
             in_block = False
-            for number, raw in enumerate(path.read_text().splitlines(), start=1):
+            for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
                 code, in_block = strip(raw, in_block)
                 if expression.search(code):
                     violations += 1

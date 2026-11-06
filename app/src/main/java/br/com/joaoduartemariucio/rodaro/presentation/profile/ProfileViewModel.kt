@@ -59,18 +59,36 @@ class ProfileViewModel(
         refresh()
     }
 
-    suspend fun delete() = performDelete { accountService.deleteAccount() }
+    var removedAccount by mutableStateOf(false)
+        private set
+
+    val canDelete: Boolean get() = deleteState != DeleteState.Working
+
+    suspend fun delete() {
+        if (deleteState == DeleteState.Working) return
+        refresh()
+        if (account == null) {
+            performDelete(event = "local_data_deleted") { removedAccount = false }
+        } else {
+            performDelete {
+                accountService.deleteAccount()
+                removedAccount = true
+            }
+        }
+    }
 
     suspend fun confirmWithPassword(password: String) =
         performDelete {
             accountService.reauthenticateWithPassword(password)
             accountService.deleteAccount()
+            removedAccount = true
         }
 
     suspend fun confirmWithGoogle() =
         performDelete {
             accountService.reauthenticateWithGoogle()
             accountService.deleteAccount()
+            removedAccount = true
         }
 
     fun cancelDelete() {
@@ -85,7 +103,10 @@ class ProfileViewModel(
         error = null
     }
 
-    private suspend fun performDelete(action: suspend () -> Unit) {
+    private suspend fun performDelete(
+        event: String = "account_deleted",
+        action: suspend () -> Unit,
+    ) {
         if (deleteState == DeleteState.Working) return
         deleteState = DeleteState.Working
         error = null
@@ -94,7 +115,7 @@ class ProfileViewModel(
             clearLocalData()
             refresh()
             deleteState = DeleteState.Done
-            analytics.event("account_deleted")
+            analytics.event(event)
         } catch (recentLogin: AccountError.RecentLoginRequired) {
             analytics.event("account_delete_reauth_required")
             deleteState =

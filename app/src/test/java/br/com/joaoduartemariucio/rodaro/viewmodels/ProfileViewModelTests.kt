@@ -8,6 +8,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.profile.ProfileViewModel.De
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -86,8 +87,25 @@ class ProfileViewModelTests {
             assertEquals(DeleteState.Done, viewModel.deleteState)
             assertNull(viewModel.account)
             assertTrue("deleteAccount" in service.calls)
+            assertTrue(viewModel.removedAccount)
             viewModel.dismissDeleteResult()
             assertEquals(DeleteState.Idle, viewModel.deleteState)
+        }
+
+    @Test
+    fun `deletes the data on this device even without an account`() =
+        runTest {
+            val service = FakeAccountService()
+            val viewModel = makeViewModel(service)
+            viewModel.refresh()
+
+            assertTrue(viewModel.canDelete)
+            viewModel.delete()
+
+            assertEquals(1, cleared)
+            assertEquals(DeleteState.Done, viewModel.deleteState)
+            assertFalse(viewModel.removedAccount)
+            assertFalse("deleteAccount" in service.calls)
         }
 
     @Test
