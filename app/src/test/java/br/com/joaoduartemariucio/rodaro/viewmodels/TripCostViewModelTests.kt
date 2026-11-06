@@ -9,9 +9,13 @@ import br.com.joaoduartemariucio.rodaro.domain.common.errors.RepositoryError
 import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
 import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
 import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.UnitSystem
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.PlaceSuggestion
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RouteEstimate
+import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RoutePoint
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.SavedRoute
 import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
 import br.com.joaoduartemariucio.rodaro.domain.trips.services.RouteEstimateProvider
+import br.com.joaoduartemariucio.rodaro.domain.trips.services.UnavailableRouteEstimateProvider
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.fakes.FakeAnalytics
 import br.com.joaoduartemariucio.rodaro.fakes.FakeRouteEstimateProvider
@@ -27,6 +31,7 @@ import org.junit.After
 import org.junit.Test
 import java.math.BigDecimal
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -220,6 +225,67 @@ class TripCostViewModelTests {
         }
 
     @Test
+    fun `the looked up toll cost follows the trip direction and is saved with the route`() =
+        runTest {
+            val provider =
+                FakeRouteEstimateProvider(
+                    estimate =
+                        RouteEstimate(
+                            distanceKm = 430.0,
+                            durationMinutes = 330,
+                            hasTolls = true,
+                            tollCost = BigDecimal("66.40"),
+                            roundTripTollCost = BigDecimal("128.20"),
+                            path = listOf(RoutePoint(-23.55, -46.63), RoutePoint(-22.9, -43.17)),
+                        ),
+                )
+            val repository = InMemoryRouteRepository()
+            val viewModel =
+                TripCostViewModel(
+                    vehicleRepository = InMemoryVehicleRepository(listOf(car)),
+                    fuelEntryRepository = InMemoryFuelEntryRepository(carFuel),
+                    routeRepository = repository,
+                    routeEstimateProvider = provider,
+                    dateProvider = FixedDateProvider(day(30)),
+                )
+            viewModel.load()
+            viewModel.origin = "São Paulo, SP"
+            viewModel.destination = "Rio de Janeiro, RJ"
+
+            viewModel.lookupRealDistance()
+
+            assertEquals(listOf(car.kind), provider.kinds)
+            assertEquals(BigDecimal("66.40"), viewModel.tollCost)
+            viewModel.isRoundTrip = true
+            assertEquals(BigDecimal("128.20"), viewModel.tollCost)
+            viewModel.consumption = "10"
+            viewModel.pricePerLiter = "6"
+            assertDecimal(
+                viewModel.cost!!
+                    .fuelCost
+                    .add(BigDecimal("128.20"))
+                    .toPlainString(),
+                viewModel.totalCost!!,
+            )
+            assertTrue(viewModel.saveRoute())
+            val saved = repository.routes().single()
+            assertEquals(BigDecimal("128.20"), saved.tollCost)
+            assertDecimal(saved.fuelCost.add(BigDecimal("128.20")).toPlainString(), saved.totalCost)
+            assertEquals(2, saved.path.size)
+
+            viewModel.restoreRoute(saved)
+            assertEquals(BigDecimal("128.20"), viewModel.tollCost)
+            viewModel.isRoundTrip = false
+            assertNull(viewModel.tollCost)
+            assertEquals(2, viewModel.routePath.size)
+
+            viewModel.updateDestination("Campinas, SP")
+            assertNull(viewModel.hasTolls)
+            assertTrue(viewModel.routePath.isEmpty())
+            assertIs<TripCostViewModel.LookupState.Idle>(viewModel.lookupState)
+        }
+
+    @Test
     fun `a failed lookup reports the error and keeps the distance`() =
         runTest {
             val provider = FakeRouteEstimateProvider(failure = java.io.IOException("offline"))
@@ -279,6 +345,9 @@ class TripCostViewModelTests {
             assertEquals(testVehicleId, saved.vehicleId)
             assertEquals(day(30), saved.createdAt)
             assertTrue(saved.hasTolls)
+            assertEquals(10.0, saved.kilometersPerLiter, 0.001)
+            assertDecimal("5", saved.pricePerLiter)
+            assertDecimal("50", saved.totalCost)
             assertDecimal("50", saved.fuelCost)
             assertTrue(analytics.names().contains("route_saved"))
             assertEquals("true", analytics.parameters("route_saved")?.get("has_tolls"))
@@ -347,6 +416,188 @@ class TripCostViewModelTests {
             assertEquals(100.0, viewModel.parsedDistance!!, 0.001)
             assertTrue(viewModel.isRoundTrip)
             assertEquals(true, viewModel.hasTolls)
+            assertEquals(10.0, viewModel.parsedConsumption!!, 0.001)
+            assertDecimal("5", viewModel.parsedPrice)
+        }
+
+    @Test
+    fun `saving after restoring edits the same saved route id`() =
+        runTest {
+            val existing = savedRoute()
+            val repository = InMemoryRouteRepository(listOf(existing))
+            val viewModel =
+                TripCostViewModel(
+                    vehicleRepository = InMemoryVehicleRepository(listOf(car)),
+                    fuelEntryRepository = InMemoryFuelEntryRepository(carFuel),
+                    routeRepository = repository,
+                    dateProvider = FixedDateProvider(day(30)),
+                )
+            viewModel.load()
+            viewModel.restoreRoute(existing)
+            viewModel.distance = NumberInput.text(120.0, NumberInput.Style.KILOMETERS)
+
+            assertTrue(viewModel.saveRoute())
+
+            val saved = repository.routes()
+            assertEquals(1, saved.size)
+            assertEquals(existing.id, saved.single().id)
+            assertEquals(120.0, saved.single().distanceKm, 0.001)
+        }
+
+    @Test
+    fun `typing origin and destination loads suggestions and selecting one fills the field`() =
+        runTest {
+            val provider =
+                FakeRouteEstimateProvider(
+                    suggestions =
+                        listOf(
+                            PlaceSuggestion("São Paulo, SP, Brasil"),
+                            PlaceSuggestion("São Paulo das Missões, RS, Brasil"),
+                        ),
+                )
+            val viewModel = makeViewModel(routeEstimateProvider = provider)
+
+            viewModel.updateOrigin("sao")
+            viewModel.updateDestination("rio")
+
+            assertEquals(2, viewModel.originSuggestions.size)
+            assertEquals(2, viewModel.destinationSuggestions.size)
+            viewModel.selectOriginSuggestion(viewModel.originSuggestions.first())
+            assertEquals("São Paulo, SP, Brasil", viewModel.origin)
+            assertTrue(viewModel.originSuggestions.isEmpty())
+            viewModel.selectDestinationSuggestion(viewModel.destinationSuggestions.first())
+            assertEquals("São Paulo, SP, Brasil", viewModel.destination)
+            assertTrue(viewModel.destinationSuggestions.isEmpty())
+        }
+
+    @Test
+    fun `a suggestions failure returns an empty list and stops loading`() =
+        runTest {
+            val viewModel = makeViewModel(routeEstimateProvider = FakeRouteEstimateProvider(failure = IllegalStateException("offline")))
+
+            viewModel.updateOrigin("sao")
+
+            assertTrue(viewModel.originSuggestions.isEmpty())
+            assertEquals(false, viewModel.suggestionsWorking)
+        }
+
+    @Test
+    fun `a suggestions cancellation is rethrown`() =
+        runTest {
+            val viewModel = makeViewModel(routeEstimateProvider = FakeRouteEstimateProvider(failure = CancellationException("cancelled")))
+
+            val error = runCatching { viewModel.updateOrigin("sao") }.exceptionOrNull()
+
+            assertIs<CancellationException>(error)
+        }
+
+    @Test
+    fun `unavailable provider returns empty suggestions`() =
+        runTest {
+            assertTrue(UnavailableRouteEstimateProvider.suggestions("sao").isEmpty())
+        }
+
+    @Test
+    fun `the average says how many full tank intervals it is based on and when the price was paid`() =
+        runTest {
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+
+            assertEquals(1, viewModel.averageConsumptionSamples)
+            assertEquals(day(10), viewModel.lastPriceDate)
+            assertFalse(viewModel.canUseAverageConsumption)
+            assertFalse(viewModel.canUseLastPrice)
+        }
+
+    @Test
+    fun `an edited consumption and price can go back to the vehicle history`() =
+        runTest {
+            val viewModel = makeViewModel()
+            viewModel.load()
+            viewModel.consumption = NumberInput.text(9.0, NumberInput.Style.CONSUMPTION)
+            viewModel.pricePerLiter = NumberInput.text(BigDecimal("7"), NumberInput.Style.FUEL_PRICE)
+
+            assertTrue(viewModel.canUseAverageConsumption)
+            assertTrue(viewModel.canUseLastPrice)
+
+            viewModel.useAverageConsumption()
+            viewModel.useLastPrice()
+
+            assertEquals(12.5, viewModel.parsedConsumption)
+            assertDecimal("6.1", viewModel.parsedPrice)
+            assertTrue(viewModel.isUsingAverageConsumption)
+            assertTrue(viewModel.isUsingLastPrice)
+        }
+
+    @Test
+    fun `the tank plan uses the selected vehicle capacity`() =
+        runTest {
+            val viewModel = makeViewModel(vehicles = listOf(car.copy(tankCapacity = 30.0)))
+            viewModel.load()
+
+            viewModel.distance = NumberInput.text(250.0, NumberInput.Style.KILOMETERS)
+            viewModel.isRoundTrip = true
+
+            val plan = assertNotNull(viewModel.tankPlan)
+            assertEquals(40.0 / 30.0, plan.tanks, 1e-9)
+            assertEquals(2, plan.fillUps)
+            assertEquals(375.0, plan.rangePerTank, 1e-9)
+        }
+
+    @Test
+    fun `no tank plan without a tank capacity or a cost`() =
+        runTest {
+            val viewModel = makeViewModel()
+            viewModel.load()
+
+            assertNull(viewModel.tankPlan)
+
+            viewModel.distance = NumberInput.text(250.0, NumberInput.Style.KILOMETERS)
+
+            assertNull(viewModel.tankPlan)
+        }
+
+    @Test
+    fun `swapping places exchanges origin and destination`() =
+        runTest {
+            val viewModel = makeViewModel()
+            viewModel.origin = "São Paulo, SP"
+            viewModel.destination = "Santos, SP"
+
+            viewModel.swapPlaces()
+
+            assertEquals("Santos, SP", viewModel.origin)
+            assertEquals("São Paulo, SP", viewModel.destination)
+            assertTrue(viewModel.originSuggestions.isEmpty())
+            assertTrue(viewModel.destinationSuggestions.isEmpty())
+        }
+
+    @Test
+    fun `restoring keeps the saved values but offers the current vehicle history`() =
+        runTest {
+            val viewModel = makeViewModel()
+            viewModel.load()
+
+            viewModel.restoreRoute(savedRoute())
+
+            assertTrue(viewModel.isEditing)
+            assertEquals(10.0, viewModel.parsedConsumption!!, 0.001)
+            assertTrue(viewModel.canUseAverageConsumption)
+            assertTrue(viewModel.canUseLastPrice)
+            assertEquals(1, viewModel.averageConsumptionSamples)
+        }
+
+    @Test
+    fun `without vehicles there is no history to offer`() =
+        runTest {
+            val viewModel = makeViewModel(vehicles = emptyList())
+
+            viewModel.load()
+
+            assertEquals(0, viewModel.averageConsumptionSamples)
+            assertNull(viewModel.lastPriceDate)
+            assertFalse(viewModel.isEditing)
         }
 
     private fun savedRoute() =
@@ -358,6 +609,9 @@ class TripCostViewModelTests {
             distanceKm = 100.0,
             isRoundTrip = true,
             hasTolls = true,
+            tollCost = BigDecimal.ZERO,
+            kilometersPerLiter = 10.0,
+            pricePerLiter = BigDecimal("5"),
             liters = 20.0,
             fuelCost = BigDecimal("100"),
             costPerKilometer = BigDecimal("0.5"),

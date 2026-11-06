@@ -19,9 +19,49 @@ val orsApiKeyFromLocalProperties =
         ?.trim()
         .orEmpty()
 
-val orsApiKeyFromEnvironment = providers.environmentVariable("OPEN_ROUTE_API_KEY").orNull?.trim().orEmpty()
+val orsApiKeyFromEnvironment =
+    providers
+        .environmentVariable("OPEN_ROUTE_API_KEY")
+        .orNull
+        ?.trim()
+        .orEmpty()
 
 val orsApiKey = orsApiKeyFromLocalProperties.ifBlank { orsApiKeyFromEnvironment }
+
+fun environment(name: String): String? =
+    providers
+        .environmentVariable(name)
+        .orNull
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+
+val releaseKeystorePath = environment("KEYSTORE_PATH")
+val versionProperties =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("version.properties"))
+        .asText
+        .get()
+        .lineSequence()
+        .map { it.trim() }
+        .filter { "=" in it }
+        .associate { it.substringBefore("=") to it.substringAfter("=") }
+
+val appVersionCode = versionProperties.getValue("VERSION_CODE").toInt()
+val appVersionName = versionProperties.getValue("VERSION_NAME")
+
+tasks
+    .matching { it.name in setOf("assembleRelease", "bundleRelease") }
+    .configureEach {
+        val missingKey = orsApiKey.isBlank()
+        doFirst {
+            if (missingKey) {
+                throw GradleException(
+                    "OpenRouteService key missing: add ors.api.key=<key> to local.properties " +
+                        "or set the OPEN_ROUTE_API_KEY environment variable before building a release.",
+                )
+            }
+        }
+    }
 
 android {
     namespace = "br.com.joaoduartemariucio.rodaro"
@@ -33,8 +73,19 @@ android {
         applicationId = "br.com.joaoduartemariucio.rodaro"
         minSdk = 36
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+    }
+
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = environment("KEYSTORE_PASSWORD")
+                keyAlias = environment("KEY_ALIAS")
+                keyPassword = environment("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -48,6 +99,9 @@ android {
             resValue("string", "admob_app_open_unit_id", "ca-app-pub-3940256099942544/9257395921")
         }
         release {
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = false
             }
@@ -82,7 +136,7 @@ android {
         warningsAsErrors = true
         abortOnError = true
         checkDependencies = false
-        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi", "LogNotTimber")
     }
 }
 
@@ -122,6 +176,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
+    implementation(libs.maplibre.android)
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

@@ -15,6 +15,12 @@ object InterstitialAds {
     private var isShowing = false
 
     fun prepare(context: Context) {
+        if (!AdMobGate.isEnabled()) {
+            ad = null
+            isLoading = false
+            isShowing = false
+            return
+        }
         if (ad != null || isLoading) return
         val application = context.applicationContext
         isLoading = true
@@ -36,6 +42,12 @@ object InterstitialAds {
     }
 
     fun show() {
+        if (!AdMobGate.isEnabled()) {
+            ad = null
+            isLoading = false
+            isShowing = false
+            return
+        }
         val activity = CurrentActivity.activity ?: return
         val loaded = ad ?: return
         if (isShowing) return

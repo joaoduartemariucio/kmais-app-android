@@ -115,3 +115,47 @@ make ci
 | `make test` | runs the unit tests with coverage |
 | `make coverage` | checks changed lines against `origin/main`; `BASE=<ref>` or `MIN_COVERAGE=<n>` to override |
 | `make clean` | removes build output |
+
+## Release
+
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) is started by hand from the
+Actions tab, on `main` only. It picks which part of the version to bump and where to send the
+build:
+
+| Input | Options |
+|---|---|
+| `bump` | `patch` (1.0.0 → 1.0.1), `minor` (→ 1.1.0) or `major` (→ 2.0.0) |
+| `play_track` | `internal` (default), `alpha`, `beta`, `production` or `none` |
+| `app_distribution` | send the APK to Firebase App Distribution (default on) |
+
+```mermaid
+graph LR
+    Bump["Bump version.properties"] --> Commit["Commit + tag vX.Y.Z"] --> Build["Signed APK + AAB"]
+    Build --> Push["Push commit and tag"] --> Distribute["App Distribution + Google Play"]
+```
+
+The version lives in [`version.properties`](../version.properties) (`VERSION_NAME`,
+`VERSION_CODE`), which Gradle reads. [`scripts/bump_version.sh`](../scripts/bump_version.sh)
+bumps the chosen part, resets the parts after it and always adds 1 to `VERSION_CODE`. The
+commit `chore(release): vX.Y.Z (code)` and the tag are pushed only after the build succeeds,
+so a failed build burns no version. Release notes are the commit subjects since the previous
+`v*` tag; they go into the tag, to the testers and to Play's "What's new".
+
+| Secret | Used for |
+|---|---|
+| `GOOGLE_SERVICES_JSON` | Firebase config; also gives the App Distribution app id |
+| `OPEN_ROUTE_API_KEY` | route lookup, passed as the `OPEN_ROUTE_API_KEY` environment variable |
+| `KEYSTORE_BASE64` | upload keystore in base64, decoded to `$RUNNER_TEMP/release.jks` and deleted at the end |
+| `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` | the keystore's passwords and alias |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON of a service account with the **Firebase App Distribution Admin** role |
+| `PLAY_SERVICE_ACCOUNT` | JSON of a service account invited in the Play Console with release permission |
+
+| Variable (optional) | Default | Used for |
+|---|---|---|
+| `FIREBASE_TESTER_GROUPS` | `testers` | App Distribution group aliases, comma separated |
+| `PLAY_RELEASE_STATUS` | `completed` | `draft` while the app has never been published on Play |
+| `PLAY_NOTES_LANGUAGE` | `pt-BR` | language of the "What's new" text; must exist in the Play listing |
+
+Without `FIREBASE_SERVICE_ACCOUNT` or `PLAY_SERVICE_ACCOUNT` that step is skipped with a
+warning, so the run still produces the files. Google Play only accepts uploads through the API
+after the first bundle of the app has been uploaded by hand in the Play Console.

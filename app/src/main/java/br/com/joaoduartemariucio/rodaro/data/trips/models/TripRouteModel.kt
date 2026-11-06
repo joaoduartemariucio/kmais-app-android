@@ -1,5 +1,6 @@
 package br.com.joaoduartemariucio.rodaro.data.trips.models
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.math.BigDecimal
@@ -15,8 +16,12 @@ data class TripRouteModel(
     val distanceKm: Double,
     val isRoundTrip: Boolean,
     val hasTolls: Boolean,
+    val tollCost: BigDecimal,
+    val kilometersPerLiter: Double,
+    val pricePerLiter: BigDecimal,
     val liters: Double,
     val fuelCost: BigDecimal,
     val costPerKilometer: BigDecimal,
     val createdAt: Instant,
+    @ColumnInfo(defaultValue = "") val path: String = "",
 )

@@ -6,6 +6,12 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface OrsApi {
+    @GET("geocode/autocomplete")
+    suspend fun autocomplete(
+        @Query("text") text: String,
+        @Query("size") size: Int = 5,
+    ): GeocodeResponse
+
     @GET("geocode/search")
     suspend fun geocode(
         @Query("text") text: String,

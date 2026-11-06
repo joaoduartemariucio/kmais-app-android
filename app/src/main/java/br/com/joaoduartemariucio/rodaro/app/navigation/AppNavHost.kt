@@ -58,7 +58,7 @@ private val tabs =
     listOf(
         Tab(VehiclesRoute.VehicleList, R.string.vehicles, Icons.Filled.DirectionsCar),
         Tab(VehiclesRoute.ArchivedVehicles, R.string.archived, Icons.Filled.Archive),
-        Tab(TripsRoute.TripCost, R.string.route, Icons.Filled.Route),
+        Tab(TripsRoute.RouteList, R.string.route, Icons.Filled.Route),
         Tab(ProfileRoute.Profile, R.string.profile, Icons.Filled.Person),
     )
 
@@ -93,7 +93,7 @@ fun AppNavHost(navigator: Navigator = rememberNavigator(tabs.map { it.route })) 
             entryProvider =
                 entryProvider<Route> {
                     vehiclesEntries(navigator)
-                    tripsEntries()
+                    tripsEntries(navigator)
                     profileEntries(navigator)
                 },
         )

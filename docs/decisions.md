@@ -500,6 +500,15 @@ counted from the last service of that kind (or the vehicle's creation).
 
 ## Presentation
 
+### Route tab starts with saved routes; calculator is a separate screen
+
+The Route tab now opens on a saved-routes list. Starting a new estimate opens a dedicated
+calculation screen, and restoring a route opens that same screen prefilled.
+
+- **Why:** daily use is mostly revisiting known routes; separating list and form reduces visual
+  clutter and typing.
+- **Cost:** one extra tap for the first estimate in a session.
+
 ### Dashboard on the vehicle screen
 
 The detail screen leads with the odometer and km/month, a 2×2 grid of metrics, every
@@ -557,6 +566,15 @@ ViewModel that performs a user action takes an `analytics: Analytics` parameter 
 
 ## Routes and networking
 
+### Route estimate shows fuel-only scope; tolls are out of scope
+
+OpenRouteService can tell if a route has toll roads, but does not provide a reliable toll amount.
+The Route screen therefore explains that the estimate is based only on distance, consumption and
+fuel price, and that toll costs should be checked separately.
+
+- **Why:** avoid showing a misleading total when the app cannot compute toll prices correctly.
+- **Cost:** users need an extra step to account for tolls.
+
 ### Real distance and tolls come from OpenRouteService
 
 The route tab looks up the real distance between an origin and a destination, and tells
@@ -571,7 +589,10 @@ whether the road has tolls. The provider is the free
 - A free API key (from `openrouteservice.org/dev`) is read from `local.properties`
   (`ors.api.key`), injected as `BuildConfig.ORS_API_KEY` and sent as the `Authorization`
   header. Without a key the app degrades gracefully: the lookup button explains that a key
-  is missing and nothing else breaks.
+  is missing and nothing else breaks. The `OPEN_ROUTE_API_KEY` environment variable is the
+  fallback, and CI writes it from the GitHub secret of the same name into `local.properties`.
+  Debug builds tolerate a missing key, but `assembleRelease` and `bundleRelease` fail without
+  one, so a release can never ship with route lookup silently disabled.
 - **Why ORS:** it is the free routing API with an explicit toll flag; Google's equivalent
   needs billing, and OSRM-class servers have no toll data at all.
 - **Why behind a Domain interface:** `RouteEstimateProvider` lives in Domain, so the
@@ -582,15 +603,84 @@ whether the road has tolls. The provider is the free
 
 `TripCostScreen` can save a calculation. The saved route stores the typed origin and
 destination, the one-way distance, the round-trip flag, the toll flag and a snapshot of the
-result (liters, fuel cost, cost per kilometer) with the vehicle and the date.
+inputs and result (km/L used, price per liter, liters, fuel cost, cost per kilometer) with the
+vehicle and the date.
 
 - **Why a snapshot instead of a reference:** consumption and fuel price change with every
   fuel-up; a saved trip is a record of what the user calculated that day, not a live
   recalculation.
-- The new `trip_routes` table bumps the database to version 2 with a `MIGRATION_1_2` that
-  only creates the table, and `RodaroDatabaseMigrationTests` runs that migration against a
-  real version-1 database (recreated from the exported `1.json` schema) and checks the old
-  data survives.
+- `trip_routes` was introduced in database version 2 (`MIGRATION_1_2`), later extended with
+  `tollCost` in version 3 (`MIGRATION_2_3`) and with `kilometersPerLiter` and
+  `pricePerLiter` in version 4 (`MIGRATION_3_4`). `RodaroDatabaseMigrationTests` covers each
+  step and checks existing data survives with safe defaults on new columns.
+
+### Trip cost shows fill-ups from the tank capacity and where each input came from
+
+The trip screens use the selected vehicle's tank capacity and fuel history instead of only
+the typed numbers.
+
+- **Fill-ups:** `TankPlan` divides the trip's liters by the tank capacity. "Fill up N times"
+  is that ratio rounded up (a tiny tolerance keeps exactly 2.0 tanks at 2), and the stops on
+  the way are N − 1, assuming the driver leaves with a full tank. Range per tank is capacity
+  × km/L. There is no reserve margin: the screen states the assumption instead of guessing a
+  percentage. Without a tank capacity the screen asks for one rather than hiding the section.
+- **Inputs stay editable:** consumption is still pre-filled with the full-tank average and
+  price with the last fuel-up, but the screen now says so (number of full-to-full intervals,
+  date of the last price). Once the user types another value it is labelled as edited and a
+  "Use average" / "Use last price" action restores the suggestion. Switching vehicles still
+  keeps typed values, as before.
+- **Restoring a saved calculation** keeps its snapshot values (see below) and only loads the
+  vehicle history as an offer, so editing an old trip never silently changes its numbers.
+- **Saved calculations open a detail screen** first; editing is an explicit action. The tank
+  plan in the detail uses the vehicle's current capacity, since capacity is not part of the
+  snapshot and rarely changes.
+
+- **Routes come only from OpenRouteService; the toll amount is not looked up.** An earlier
+  version priced tolls through our own rodaro-api, but that API is no longer going to be
+  deployed: every lookup would cost money on a paid toll provider, and the free path already
+  gives distance, duration, the map path and a reliable "has tolls" flag. When a route has
+  tolls and no amount, the total is labelled "+ tolls, not included" and the footer says the
+  estimate leaves tolls out. `tollCost` stays in `RouteEstimate` and in `trip_routes`, so routes
+  saved with a toll amount keep showing it, and a future free source (for example ANTT/ARTESP
+  open data on toll plazas) can fill it without a migration.
+- **Cost:** the ORS key ships in the APK, so all users share its free daily quota; if usage
+  grows, geocoding is the first call to move off ORS.
+
+- **The route preview is MapLibre on OpenFreeMap tiles.** Both are free with no API key or
+  usage quota, unlike Google Maps SDK or Mapbox. The map is a static preview (gestures off) so
+  it does not fight the form's scroll; navigation is handed to Google Maps or Waze by URL,
+  which needs no SDK or package query. The path is stored with the saved route as a
+  precision-6 encoded polyline, so a saved calculation shows its map without a new lookup;
+  routes saved before this have an empty path and show only the open-in buttons.
+
+- **A trip's total is fuel plus tolls; cost per km stays fuel only.** The total is what the
+  trip costs out of pocket, so tolls belong in it, and the fuel/toll split is shown under it.
+  Cost per km is kept as fuel cost so it stays comparable with the vehicle's own cost per km,
+  which comes from fill-ups and has no tolls.
+
+### Release bundles are built and signed by GitHub Actions
+
+GitHub secrets cannot be read back, not even by their owner, so a local build never sees the
+OpenRouteService key or the keystore stored there. Releases are therefore built by
+`release.yml` (see [CI](ci.md#release)), which hands them to Gradle as environment variables.
+
+- **Signing:** `signingConfigs.release` exists only when `KEYSTORE_PATH` is set; without it a
+  local release is unsigned and can still be signed with Android Studio's "Generate Signed
+  Bundle". The keystore is the Play upload key, so a leak is recoverable by asking Google for a
+  new upload key; a copy is kept outside GitHub.
+- **Version:** `version.properties` is the single source for `versionName` and `versionCode`.
+  The release workflow bumps it (patch, minor or major, and always +1 on the code), commits and
+  tags `vX.Y.Z` itself, so the number in the repo always matches the last build sent out and
+  nobody edits it by hand. The commit and tag are pushed only after the build passes. Releases
+  run only on `main`, since the bump commit lands on the branch the run started from.
+- **Distribution:** App Distribution gets the signed **APK**, not the bundle, because sending
+  an AAB there requires linking Firebase to the Play app and goes through Play's own signing;
+  the APK installs as is. Testers who also have the Play version must uninstall it first, since
+  Play re-signs with the app signing key and the APK carries the upload key. Google Play gets
+  the bundle through `r0adkll/upload-google-play`; the track is chosen on each run and defaults to
+  internal, so production is never reached by accident.
+- **Cost:** a release is a manual run, and the first bundle of a new app must
+  still be uploaded to Play by hand before the API accepts uploads.
 
 ## Tooling
 

@@ -23,11 +23,18 @@ object AppOpenAds {
     private var activityReference = WeakReference<Activity>(null)
 
     fun start(application: Application) {
+        if (!AdMobGate.isEnabled()) {
+            ad = null
+            isLoading = false
+            isShowing = false
+            return
+        }
         this.application = application
         load(application)
     }
 
     fun onActivityResumed(activity: Activity) {
+        if (!AdMobGate.isEnabled()) return
         isForeground = true
         activityReference = WeakReference(activity)
         showIfPossible()
@@ -39,6 +46,11 @@ object AppOpenAds {
     }
 
     private fun load(application: Application) {
+        if (!AdMobGate.isEnabled()) {
+            ad = null
+            isLoading = false
+            return
+        }
         if (ad != null || isLoading) return
         isLoading = true
         AppOpenAd.load(
@@ -60,6 +72,11 @@ object AppOpenAds {
     }
 
     private fun showIfPossible() {
+        if (!AdMobGate.isEnabled()) {
+            ad = null
+            isShowing = false
+            return
+        }
         if (!isForeground || isShowing) return
         val loaded = ad ?: return
         if (hasShown && System.currentTimeMillis() - lastShownAt < SHOW_INTERVAL_MILLIS) return

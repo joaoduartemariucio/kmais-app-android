@@ -22,3 +22,10 @@ app/build/
 # Firebase config with the API key: never commit it to this public repo.
 # CI restores it from the GOOGLE_SERVICES_JSON secret.
 app/google-services.json
+
+# Signing keys: CI restores the release keystore from the KEYSTORE_BASE64 secret.
+*.jks
+*.keystore
+
+# Locally built release bundles.
+app/release/
