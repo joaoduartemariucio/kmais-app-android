@@ -71,7 +71,7 @@ android {
 
     defaultConfig {
         applicationId = "br.com.joaoduartemariucio.rodaro"
-        minSdk = 36
+        minSdk = 28
         targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
@@ -147,6 +147,7 @@ ksp {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

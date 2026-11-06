@@ -9,13 +9,36 @@ import br.com.joaoduartemariucio.rodaro.domain.common.errors.AccountError
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Account
 import br.com.joaoduartemariucio.rodaro.domain.common.services.AccountService
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
+import br.com.joaoduartemariucio.rodaro.domain.costs.calculations.Cost
+import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
+import br.com.joaoduartemariucio.rodaro.domain.maintenance.repositories.ServiceRepository
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
+import java.math.BigDecimal
 import kotlin.coroutines.cancellation.CancellationException
 
 class ProfileViewModel(
     private val accountService: AccountService,
+    private val vehicleRepository: VehicleRepository,
+    private val fuelEntryRepository: FuelEntryRepository,
+    private val serviceRepository: ServiceRepository,
+    private val preferencesRepository: PreferencesRepository,
     private val clearLocalData: suspend () -> Unit,
     private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
+    data class Summary(
+        val vehicleCount: Int,
+        val recordCount: Int,
+        val totalSpent: BigDecimal,
+    )
+
+    enum class NotificationsState {
+        ON,
+        PARTIAL,
+        OFF,
+    }
+
     sealed interface DeleteState {
         data object Idle : DeleteState
 
@@ -36,6 +59,72 @@ class ProfileViewModel(
 
     var error: Throwable? by mutableStateOf(null)
         private set
+
+    var summary: Summary? by mutableStateOf(null)
+        private set
+
+    var preferences: Preferences by mutableStateOf(Preferences())
+        private set
+
+    val notifications: NotificationsState
+        get() =
+            when {
+                preferences.pushEnabled && preferences.remindersEnabled -> NotificationsState.ON
+                preferences.pushEnabled || preferences.remindersEnabled -> NotificationsState.PARTIAL
+                else -> NotificationsState.OFF
+            }
+
+    val initials: String?
+        get() {
+            val account = account ?: return null
+            val name = account.displayName?.takeIf { it.isNotBlank() }
+            val source = name ?: account.email?.substringBefore('@')?.takeIf { it.isNotBlank() } ?: return null
+            val words = source.split(' ', '.', '_', '-').filter { it.isNotBlank() }
+            val letters =
+                if (name != null && words.size > 1) {
+                    "${words.first().first()}${words.last().first()}"
+                } else {
+                    words.firstOrNull()?.take(1).orEmpty()
+                }
+            return letters.uppercase().takeIf { it.isNotEmpty() }
+        }
+
+    suspend fun load() {
+        refresh()
+        loadPreferences()
+        loadSummary()
+    }
+
+    private suspend fun loadPreferences() {
+        try {
+            preferences = preferencesRepository.get()
+        } catch (failure: Exception) {
+            if (failure is CancellationException) throw failure
+        }
+    }
+
+    private suspend fun loadSummary() {
+        summary =
+            try {
+                val vehicles = vehicleRepository.all(includingArchived = true)
+                var records = 0
+                var spent = BigDecimal.ZERO
+                vehicles.forEach { vehicle ->
+                    val fuel = fuelEntryRepository.entries(vehicle.id)
+                    val services = serviceRepository.entries(vehicle.id)
+                    records += fuel.size + services.size
+                    spent += Cost.summary(fuel, services).totalCost
+                }
+                Summary(
+                    vehicleCount = vehicles.count { !it.isArchived },
+                    recordCount = records,
+                    totalSpent = spent,
+                )
+            } catch (failure: Exception) {
+                if (failure is CancellationException) throw failure
+                null
+            }
+    }
 
     suspend fun refresh() {
         account =
@@ -113,7 +202,7 @@ class ProfileViewModel(
         try {
             action()
             clearLocalData()
-            refresh()
+            load()
             deleteState = DeleteState.Done
             analytics.event(event)
         } catch (recentLogin: AccountError.RecentLoginRequired) {

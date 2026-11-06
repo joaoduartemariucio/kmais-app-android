@@ -154,12 +154,10 @@
     <string name="auth_email_invalid">Informe um e-mail válido.</string>
     <string name="auth_password_required">Informe sua senha.</string>
     <string name="auth_password_too_short">Use pelo menos 6 caracteres.</string>
-    <string name="account">Conta</string>
     <string name="account_none">Você não está conectado.</string>
     <string name="account_provider_google">Conta Google</string>
     <string name="account_provider_password">E-mail e senha</string>
     <string name="sign_out">Sair</string>
-    <string name="privacy">Privacidade e dados</string>
     <string name="privacy_policy">Política de privacidade</string>
     <string name="delete_account_data">Excluir conta e dados</string>
     <string name="delete_confirm_title">Excluir conta e dados?</string>
@@ -332,4 +330,24 @@
     <string name="one_way_distance">Distância de ida</string>
     <string name="delete_route_confirm_title">Excluir este cálculo?</string>
     <string name="delete_route_confirm_message">Essa ação não pode ser desfeita.</string>
+    <string name="profile_signed_out_title">Entre na sua conta</string>
+    <string name="profile_garage">Sua garagem</string>
+    <string name="profile_records">Registros</string>
+    <string name="profile_records_caption">Abastecimentos e serviços</string>
+    <string name="profile_total_spent_caption">Desde o início</string>
+    <string name="profile_settings">Configurações</string>
+    <string name="profile_notifications_on">Ativadas</string>
+    <string name="profile_notifications_partial">Parcialmente ativadas</string>
+    <string name="profile_notifications_off">Desativadas</string>
+    <string name="profile_units_currency">Moeda e unidades</string>
+    <string name="profile_units_metric_short">Métrico</string>
+    <string name="profile_units_imperial_short">Imperial</string>
+    <string name="profile_privacy_summary">Estatísticas de uso e anúncios</string>
+    <string name="profile_about">Sobre</string>
+    <string name="profile_rate">Avaliar no Google Play</string>
+    <string name="profile_share">Compartilhar o Rodaro</string>
+    <string name="profile_share_message">Eu acompanho abastecimentos, gastos e manutenção dos meus veículos com o Rodaro: %1$s</string>
+    <string name="profile_data">Conta e dados</string>
+    <string name="profile_sign_out_caption">Seus registros continuam neste aparelho</string>
+    <string name="profile_delete_caption">Apaga para sempre veículos, abastecimentos, serviços e rotas</string>
 </resources>

@@ -9,7 +9,7 @@ why, and what it costs. Newest first within each group. Product decisions are sh
 
 ### Android: privacy controls (LGPD)
 
-Result of the LGPD audit in `.lgpd/gaps.md` (2026-11-06). The privacy policy v2 describes all of it.
+Result of an LGPD audit (2026-11-06). The privacy policy v2 describes all of it.
 
 - **Statistics are opt-out, personalized ads are opt-in.** `Preferences.usageStatisticsEnabled`
   (default on) switches Analytics, Crashlytics and Performance together; the legal basis is
@@ -139,7 +139,7 @@ The icon is the teal "R" with a road on `#0E131D`. The adaptive icon uses PNG la
 density (`mipmap-*/ic_launcher_foreground.png`, `ic_launcher_monochrome.png` for themed icons)
 over the `ic_launcher_background` color, with the logo inside the 66 dp safe zone. The
 notification small icon (`drawable-*/ic_notification.png`) is the same silhouette in white.
-Legacy `ic_launcher.webp` files were removed: with `minSdk` 36 the adaptive icon is always used.
+Legacy `ic_launcher.webp` files were removed: with `minSdk` 28 (adaptive icons exist since API 26) the adaptive icon is always used.
 
 - **Revisit when:** a vector version of the logo exists — it would replace the PNGs.
 
@@ -156,13 +156,25 @@ Material 3 components replace SwiftUI's).
 - **Cost:** every rule change lands twice. The shared test names make the diff between the two
   test suites the checklist.
 
-### Android: minimum SDK 36
+### Android: minimum SDK 28 (Android 9)
 
-The app targets the newest platform only, like the iOS app targets iOS 26.5.
+The app runs on Android 9 and newer. Android Lint (`NewApi`, warnings as errors) is the
+check that nothing newer than API 28 is called without a version guard. Three spots needed one:
 
-- **Why:** one developer; no compatibility code for notification permission, edge-to-edge or
-  per-app languages.
-- **Revisit when:** the app is published to people on older phones.
+- **Notification permission:** `POST_NOTIFICATIONS` only exists from Android 13 (API 33).
+  Below it, `NotificationPermission` counts as granted while
+  `NotificationManagerCompat.areNotificationsEnabled()` is true and never asks, because there
+  is no runtime dialog to show; `MainActivity` answers "denied" to a request on those versions.
+- **App language:** see "the app language goes through the platform `LocaleManager`".
+- **Map links:** `URLEncoder.encode(String, Charset)` is API 33, so the charset is passed by name.
+
+- **Why:** an API 36 minimum shut out every phone not yet on Android 16, for
+  three small compatibility spots.
+- **Cost:** AppCompat as a dependency and its theme on `MainActivity`; two code paths in
+  `NotificationPermission` and `LocaleLanguageApplier`, each tested on API 28 and 33+ with
+  Robolectric.
+- **Revisit when:** Play Console shows almost no installs below Android 13; then raising the
+  minimum to 33 removes both paths.
 
 ## Preferences
 
@@ -202,11 +214,19 @@ marketing push, or the opposite.
 
 ### Android: the app language goes through the platform `LocaleManager`
 
-With `minSdk = 36`, `LocaleManager.setApplicationLocales` is the native per-app language API:
-the system persists the choice, recreates the Activity and updates the resources, so the app
-keeps no duplicate language state. `LanguageOption.SYSTEM` clears the override with an empty
-`LocaleList`. AppCompat's `AppCompatDelegate.setApplicationLocales` would add a dependency only
-to support older Android versions this app does not have.
+On Android 13 and newer, `LocaleManager.setApplicationLocales` is the native per-app language
+API: the system persists the choice, recreates the Activity and updates the resources, so the
+app keeps no duplicate language state. `LanguageOption.SYSTEM` clears the override with an
+empty `LocaleList`. Below Android 13 `LocaleLanguageApplier` calls
+`AppCompatDelegate.setApplicationLocales` instead; that is why `MainActivity` is an
+`AppCompatActivity` with an AppCompat theme and the manifest enables
+`AppLocalesMetadataHolderService` with `autoStoreLocales`, so AppCompat saves the choice and
+reapplies it on the next launch. `android:localeConfig` stays; older versions ignore it.
+
+- **Why not AppCompat on every version:** on Android 13+ `AppCompatDelegate` only reaches
+  `LocaleManager` through a live AppCompat activity and silently does nothing without one;
+  calling `LocaleManager` directly there keeps the current behavior and its tests.
+- **Cost:** two code paths for one setting.
 
 ## Data entry
 
@@ -375,6 +395,21 @@ instant, while push and pop inside a tab slide.
   reloads the screen; with local data that takes a few milliseconds.
 - **Profile** has no account behind it yet: it shows the app's name, purpose and version.
 
+### Android: Profile is about the user, not the app
+
+The Profile tab opens with who is signed in (avatar with initials, name, e-mail, provider)
+and a summary of the garage: active vehicles, records (fill-ups plus services) and total
+spent. The records and the total include archived vehicles, because they are still the
+user's history; the vehicle count does not, to match the Vehicles tab. Settings rows show
+the current value (notifications, currency and units, language) and all open Preferences.
+About groups rating on Google Play, sharing and the privacy policy. Sign out and delete sit
+last as plain rows, the delete one in red, instead of a full-width red button.
+
+- **Why:** the old screen led with the app's logo and tagline, hid the account below it and
+  gave the irreversible delete the most prominent button on the screen.
+- **Cost:** the summary reads every vehicle's records on each visit to the tab; fine for a
+  personal garage, worth revisiting if a fleet ever lives in one install.
+
 ### Android: navigation per feature, one main host, slide transitions
 
 Each feature declares its routes and entries in `presentation/<feature>/navigation`; the
@@ -477,9 +512,10 @@ notification when it runs.
 
 ### Android: asking for notification permission
 
-`POST_NOTIFICATIONS` is a runtime permission. `NotificationPermission` asks through the
-activity when `ServiceReminderSync` has something to schedule — the same moment iOS asks —
-and answers "denied" when no activity is around.
+`POST_NOTIFICATIONS` is a runtime permission from Android 13. `NotificationPermission` asks
+through the activity when `ServiceReminderSync` has something to schedule — the same moment
+iOS asks — and answers "denied" when no activity is around. Below Android 13 nothing is asked:
+the answer is whether the app's notifications are turned on in the system settings.
 
 ### When a reminder fires
 
