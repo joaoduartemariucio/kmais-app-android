@@ -1,12 +1,24 @@
 package br.com.joaoduartemariucio.rodaro.viewmodels
 
+import br.com.joaoduartemariucio.rodaro.calculations.assertDecimal
+import br.com.joaoduartemariucio.rodaro.calculations.day
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.AccountError
 import br.com.joaoduartemariucio.rodaro.domain.common.services.Account
+import br.com.joaoduartemariucio.rodaro.domain.fueling.entities.FuelEntry
+import br.com.joaoduartemariucio.rodaro.domain.maintenance.entities.ServiceEntry
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
+import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.Vehicle
 import br.com.joaoduartemariucio.rodaro.fakes.FakeAccountService
+import br.com.joaoduartemariucio.rodaro.fakes.InMemoryFuelEntryRepository
+import br.com.joaoduartemariucio.rodaro.fakes.InMemoryPreferencesRepository
+import br.com.joaoduartemariucio.rodaro.fakes.InMemoryServiceRepository
+import br.com.joaoduartemariucio.rodaro.fakes.InMemoryVehicleRepository
 import br.com.joaoduartemariucio.rodaro.presentation.profile.ProfileViewModel
 import br.com.joaoduartemariucio.rodaro.presentation.profile.ProfileViewModel.DeleteState
+import br.com.joaoduartemariucio.rodaro.presentation.profile.ProfileViewModel.NotificationsState
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -19,7 +31,20 @@ class ProfileViewModelTests {
 
     private fun googleAccount() = Account(id = "google-id", email = "driver@gmail.com", displayName = "Driver", provider = Account.Provider.GOOGLE)
 
-    private fun makeViewModel(service: FakeAccountService = FakeAccountService()) = ProfileViewModel(service, clearLocalData = { cleared++ })
+    private val vehicles = InMemoryVehicleRepository()
+    private val fuel = InMemoryFuelEntryRepository()
+    private val services = InMemoryServiceRepository()
+    private val preferences = InMemoryPreferencesRepository()
+
+    private fun makeViewModel(service: FakeAccountService = FakeAccountService()) =
+        ProfileViewModel(
+            accountService = service,
+            vehicleRepository = vehicles,
+            fuelEntryRepository = fuel,
+            serviceRepository = services,
+            preferencesRepository = preferences,
+            clearLocalData = { cleared++ },
+        )
 
     @Test
     fun `loads the signed in account`() =
@@ -187,5 +212,120 @@ class ProfileViewModelTests {
             viewModel.cancelDelete()
 
             assertEquals(DeleteState.Idle, viewModel.deleteState)
+        }
+
+    @Test
+    fun `summarizes the garage across active and archived vehicles`() =
+        runTest {
+            val car = Vehicle(name = "Car", createdAt = day(0))
+            val bike = Vehicle(name = "Bike", createdAt = day(1), isArchived = true)
+            vehicles.save(car)
+            vehicles.save(bike)
+            fuel.save(FuelEntry(vehicleId = car.id, date = day(2), odometer = 1_000.0, liters = 10.0, pricePerLiter = BigDecimal("5.00"), isFullTank = true))
+            fuel.save(FuelEntry(vehicleId = bike.id, date = day(3), odometer = 500.0, liters = 4.0, pricePerLiter = BigDecimal("6.00"), isFullTank = true))
+            services.save(ServiceEntry(vehicleId = car.id, date = day(4), odometer = 1_200.0, cost = BigDecimal("150.00")))
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+
+            val summary = viewModel.summary
+            assertEquals(1, summary?.vehicleCount)
+            assertEquals(3, summary?.recordCount)
+            assertDecimal("224.00", summary?.totalSpent)
+        }
+
+    @Test
+    fun `shows an empty garage as zeros`() =
+        runTest {
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+
+            assertEquals(ProfileViewModel.Summary(0, 0, BigDecimal.ZERO), viewModel.summary)
+        }
+
+    @Test
+    fun `hides the garage summary when the records cannot be read`() =
+        runTest {
+            vehicles.failure = IllegalStateException("boom")
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+
+            assertNull(viewModel.summary)
+        }
+
+    @Test
+    fun `loads the saved preferences and keeps the defaults when they cannot be read`() =
+        runTest {
+            preferences.stored = Preferences(pushEnabled = false, remindersEnabled = false)
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+            assertEquals(NotificationsState.OFF, viewModel.notifications)
+
+            preferences.failure = IllegalStateException("boom")
+            val fresh = makeViewModel()
+            fresh.load()
+            assertEquals(Preferences(), fresh.preferences)
+            assertEquals(NotificationsState.ON, fresh.notifications)
+        }
+
+    @Test
+    fun `reports notifications as partly on when only one kind is enabled`() =
+        runTest {
+            preferences.stored = Preferences(pushEnabled = false, remindersEnabled = true)
+            val viewModel = makeViewModel()
+
+            viewModel.load()
+
+            assertEquals(NotificationsState.PARTIAL, viewModel.notifications)
+        }
+
+    @Test
+    fun `builds initials from the first and last name`() =
+        runTest {
+            val viewModel = makeViewModel(FakeAccountService(googleAccount().copy(displayName = "Ana Maria Souza")))
+
+            viewModel.load()
+
+            assertEquals("AS", viewModel.initials)
+        }
+
+    @Test
+    fun `falls back to the first letter of the e-mail when there is no name`() =
+        runTest {
+            val viewModel = makeViewModel(FakeAccountService(passwordAccount()))
+
+            viewModel.load()
+
+            assertEquals("D", viewModel.initials)
+        }
+
+    @Test
+    fun `has no initials when signed out or without a name and e-mail`() =
+        runTest {
+            val signedOut = makeViewModel()
+            signedOut.load()
+            assertNull(signedOut.initials)
+
+            val anonymous = makeViewModel(FakeAccountService(passwordAccount().copy(email = null)))
+            anonymous.load()
+            assertNull(anonymous.initials)
+        }
+
+    @Test
+    fun `refreshes the garage summary after deleting the local data`() =
+        runTest {
+            vehicles.save(Vehicle(name = "Car", createdAt = day(0)))
+            val viewModel = makeViewModel()
+            viewModel.load()
+            assertEquals(1, viewModel.summary?.vehicleCount)
+            vehicles.failure = IllegalStateException("cleared")
+
+            viewModel.delete()
+
+            assertNull(viewModel.summary)
+            assertEquals(DeleteState.Done, viewModel.deleteState)
         }
 }

@@ -16,5 +16,5 @@ object ExternalMaps {
         end?.let { "https://waze.com/ul?ll=${it.latitude},${it.longitude}&navigate=yes" }
             ?: "https://waze.com/ul?q=${encode(destination)}&navigate=yes"
 
-    private fun encode(text: String) = URLEncoder.encode(text.trim(), Charsets.UTF_8).replace("+", "%20")
+    private fun encode(text: String) = URLEncoder.encode(text.trim(), Charsets.UTF_8.name()).replace("+", "%20")
 }

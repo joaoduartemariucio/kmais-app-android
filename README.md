@@ -5,7 +5,7 @@
 **Car and motorcycle maintenance tracker for Android: fuel log, real consumption, cost per km and service reminders.**
 
 [![CI](https://github.com/joaoduartemariucio/kmais-app-android/actions/workflows/ci.yml/badge.svg)](https://github.com/joaoduartemariucio/kmais-app-android/actions/workflows/ci.yml)
-![Android 16+](https://img.shields.io/badge/Android-API%2036%2B-3DDC84?logo=android&logoColor=white)
+![Android 9+](https://img.shields.io/badge/Android-API%2028%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose%20%2B%20Room-7F52FF?logo=kotlin&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 

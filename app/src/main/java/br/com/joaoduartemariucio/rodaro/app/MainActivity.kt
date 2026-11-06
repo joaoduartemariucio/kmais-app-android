@@ -1,11 +1,12 @@
 package br.com.joaoduartemariucio.rodaro.app
 
 import android.Manifest
+import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import br.com.joaoduartemariucio.rodaro.app.navigation.AppNavHost
 import br.com.joaoduartemariucio.rodaro.presentation.common.ads.AppOpenAds
@@ -13,7 +14,7 @@ import br.com.joaoduartemariucio.rodaro.presentation.common.ads.CurrentActivity
 import br.com.joaoduartemariucio.rodaro.presentation.theme.RodaroTheme
 import kotlinx.coroutines.CompletableDeferred
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private var pendingPermission: CompletableDeferred<Boolean>? = null
 
     private val permissionLauncher =
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun requestNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
         val deferred =
             pendingPermission ?: CompletableDeferred<Boolean>().also {
                 pendingPermission = it
