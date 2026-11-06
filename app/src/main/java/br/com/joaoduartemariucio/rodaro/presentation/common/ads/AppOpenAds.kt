@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import br.com.joaoduartemariucio.rodaro.R
 import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.appopen.AppOpenAd
@@ -56,7 +55,7 @@ object AppOpenAds {
         AppOpenAd.load(
             application,
             application.getString(R.string.admob_app_open_unit_id),
-            AdRequest.Builder().build(),
+            AdMobGate.request(),
             object : AppOpenAd.AppOpenAdLoadCallback() {
                 override fun onAdLoaded(loaded: AppOpenAd) {
                     ad = loaded

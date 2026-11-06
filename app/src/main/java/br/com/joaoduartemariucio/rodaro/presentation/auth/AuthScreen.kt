@@ -34,16 +34,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import br.com.joaoduartemariucio.rodaro.R
 import br.com.joaoduartemariucio.rodaro.app.LocalDependencies
 import br.com.joaoduartemariucio.rodaro.presentation.common.FailureMessage
 import br.com.joaoduartemariucio.rodaro.presentation.common.Localizer
+import br.com.joaoduartemariucio.rodaro.presentation.common.PrivacyLinks
 import br.com.joaoduartemariucio.rodaro.presentation.common.SectionCard
 import br.com.joaoduartemariucio.rodaro.presentation.common.dismissesKeyboard
 import br.com.joaoduartemariucio.rodaro.presentation.common.rememberLocalizer
@@ -58,6 +61,7 @@ fun AuthScreen(
     val dependencies = LocalDependencies.current
     val viewModel = viewModel { AuthViewModel(dependencies.accountService, dependencies.analytics) }
     val coroutines = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
     val localizer = rememberLocalizer()
     var emailTouched by remember { mutableStateOf(false) }
     var passwordTouched by remember { mutableStateOf(false) }
@@ -183,6 +187,14 @@ fun AuthScreen(
                             R.string.auth_switch_to_sign_in
                         },
                     ),
+                )
+            }
+
+            TextButton(onClick = { uriHandler.openUri(PrivacyLinks.POLICY) }) {
+                Text(
+                    stringResource(R.string.auth_privacy_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

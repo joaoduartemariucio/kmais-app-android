@@ -52,6 +52,7 @@ fun PreferencesScreen(onBack: () -> Unit) {
                 repository = dependencies.preferencesRepository,
                 applyLanguage = dependencies.localeLanguageApplier::apply,
                 syncReminders = { dependencies.reminderSync.sync() },
+                applyPrivacy = dependencies.applyPrivacy,
                 analytics = dependencies.analytics,
             )
         }
@@ -146,6 +147,25 @@ fun PreferencesScreen(onBack: () -> Unit) {
                         title = stringResource(R.string.pref_units_imperial),
                         selected = viewModel.preferences.unitSystem == UnitSystem.IMPERIAL,
                         onClick = { coroutines.launch { viewModel.setUnitSystem(UnitSystem.IMPERIAL) } },
+                    )
+                }
+            }
+
+            item {
+                SectionHeader(stringResource(R.string.pref_section_privacy))
+                SectionCard {
+                    SwitchRow(
+                        title = stringResource(R.string.pref_usage_statistics_title),
+                        description = stringResource(R.string.pref_usage_statistics_description),
+                        checked = viewModel.preferences.usageStatisticsEnabled,
+                        onCheckedChange = { enabled -> coroutines.launch { viewModel.setUsageStatisticsEnabled(enabled) } },
+                    )
+                    SectionDivider()
+                    SwitchRow(
+                        title = stringResource(R.string.pref_personalized_ads_title),
+                        description = stringResource(R.string.pref_personalized_ads_description),
+                        checked = viewModel.preferences.personalizedAdsEnabled,
+                        onCheckedChange = { enabled -> coroutines.launch { viewModel.setPersonalizedAdsEnabled(enabled) } },
                     )
                 }
             }

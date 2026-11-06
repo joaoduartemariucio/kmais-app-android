@@ -13,6 +13,7 @@ object OrsNetwork {
     fun api(
         apiKey: String,
         baseUrl: String = BASE_URL,
+        log: ((String) -> Unit)? = null,
     ): OrsApi =
         Retrofit
             .Builder()
@@ -34,7 +35,8 @@ object OrsNetwork {
                                 .addHeader("Authorization", apiKey)
                                 .build(),
                         )
-                    }.connectTimeout(20, TimeUnit.SECONDS)
+                    }.apply { log?.let { addInterceptor(HttpLogInterceptor(it)) } }
+                    .connectTimeout(20, TimeUnit.SECONDS)
                     .readTimeout(20, TimeUnit.SECONDS)
                     .build(),
             ).addConverterFactory(Json { ignoreUnknownKeys = true }.asConverterFactory("application/json".toMediaType()))

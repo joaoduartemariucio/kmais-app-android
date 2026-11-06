@@ -145,6 +145,11 @@ class InMemoryPreferencesRepository(
         stored = preferences
         saves += 1
     }
+
+    override suspend fun clear() {
+        failure?.let { throw it }
+        stored = Preferences()
+    }
 }
 
 class FakeReminderScheduler(
@@ -203,8 +208,10 @@ class FakeRouteEstimateProvider(
 ) : RouteEstimateProvider {
     val lookups = mutableListOf<Pair<String, String>>()
     val kinds = mutableListOf<VehicleKind>()
+    val queries = mutableListOf<String>()
 
     override suspend fun suggestions(query: String): List<PlaceSuggestion> {
+        queries += query
         failure?.let { throw it }
         return suggestions
     }

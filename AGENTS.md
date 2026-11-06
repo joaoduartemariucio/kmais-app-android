@@ -14,6 +14,7 @@ make lint          # layer rules + Android Lint, warnings as errors
 make build         # build app + unit tests
 make test          # unit tests with coverage
 make coverage      # ≥ 80% of changed executable lines must be covered
+make logs          # app logs only: HTTP requests, analytics, crashes (debug builds)
 ```
 
 Needs JDK 17+ and the Android SDK (`ANDROID_HOME` or `local.properties`); Gradle downloads the rest.

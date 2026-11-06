@@ -8,8 +8,10 @@ endif
 COVERAGE_REPORT := app/build/reports/coverage/test/debug/report.xml
 BASE ?= origin/main
 MIN_COVERAGE ?= 80
+ADB ?= adb
+LOG_TAGS := Rodaro.Http:D Rodaro.Analytics:D Rodaro.Reminders:D Rodaro.Startup:D AndroidRuntime:E
 
-.PHONY: ci lint format format-check build test coverage clean
+.PHONY: ci lint format format-check build test coverage clean logs
 
 ci: lint format-check build test coverage
 
@@ -34,3 +36,6 @@ coverage:
 
 clean:
 	$(GRADLE) clean
+
+logs:
+	$(ADB) logcat -v color -v time -s $(LOG_TAGS)

@@ -26,6 +26,7 @@ import br.com.joaoduartemariucio.rodaro.domain.common.services.Analytics
 import br.com.joaoduartemariucio.rodaro.domain.common.services.DateProvider
 import br.com.joaoduartemariucio.rodaro.domain.fueling.repositories.FuelEntryRepository
 import br.com.joaoduartemariucio.rodaro.domain.maintenance.repositories.ServiceRepository
+import br.com.joaoduartemariucio.rodaro.domain.preferences.entities.Preferences
 import br.com.joaoduartemariucio.rodaro.domain.preferences.repositories.PreferencesRepository
 import br.com.joaoduartemariucio.rodaro.domain.reminders.services.ReminderScheduler
 import br.com.joaoduartemariucio.rodaro.domain.trips.repositories.RouteRepository
@@ -53,7 +54,7 @@ class AppDependencies(
         if (BuildConfig.ORS_API_KEY.isEmpty()) {
             UnavailableRouteEstimateProvider
         } else {
-            OpenRouteServiceProvider(OrsNetwork.api(BuildConfig.ORS_API_KEY))
+            OpenRouteServiceProvider(OrsNetwork.api(BuildConfig.ORS_API_KEY, log = DebugLog.http))
         }
     val dateProvider: DateProvider = SystemDateProvider()
     val accountService: AccountService = FirebaseAccountService(context)
@@ -64,8 +65,15 @@ class AppDependencies(
             WorkManager.getInstance(context).cancelAllWork()
             NotificationManagerCompat.from(context).cancelAll()
             database.clearAllTables()
+            val kept = Preferences(usageStatisticsEnabled = preferencesRepository.get().usageStatisticsEnabled)
+            preferencesRepository.clear()
+            preferencesRepository.save(kept)
+            DisplayPreferences.update(kept)
+            PrivacySettings.resetIdentifiers(context)
+            PrivacySettings.apply(context, kept)
         }
     }
+    val applyPrivacy: (Preferences) -> Unit = { PrivacySettings.apply(context, it) }
     val notificationPermission = NotificationPermission(context)
     val reminderScheduler: ReminderScheduler = WorkManagerReminderScheduler(context, notificationPermission)
     val reminderSync =
@@ -88,10 +96,10 @@ class AppDependencies(
             try {
                 val database = RodaroDatabase.create(context)
                 database.openHelper.writableDatabase
-                AppDependencies(context, database, analytics = FirebaseAnalyticsTracker(context))
+                AppDependencies(context, database, analytics = DebugLog.analytics(FirebaseAnalyticsTracker(context)))
             } catch (error: Exception) {
-                Log.e("startup", "On-disk store unavailable, falling back to memory", error)
-                inMemory(context, isUsingFallbackStore = true, analytics = FirebaseAnalyticsTracker(context))
+                Log.e("Rodaro.Startup", "On-disk store unavailable, falling back to memory", error)
+                inMemory(context, isUsingFallbackStore = true, analytics = DebugLog.analytics(FirebaseAnalyticsTracker(context)))
             }
 
         fun inMemory(

@@ -23,6 +23,9 @@ import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import br.com.joaoduartemariucio.rodaro.domain.vehicles.repositories.VehicleRepository
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.common.UnitConversion
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -93,6 +96,9 @@ class TripCostViewModel(
 
     var suggestionsWorking by mutableStateOf(false)
         private set
+
+    private var originSearch: Job? = null
+    private var destinationSearch: Job? = null
 
     var saving by mutableStateOf(false)
         private set
@@ -224,16 +230,29 @@ class TripCostViewModel(
     suspend fun updateOrigin(text: String) {
         if (text != origin) clearLookup()
         origin = text
-        originSuggestions = suggestions(text)
+        val search = replaceSearch(originSearch)
+        originSearch = search
+        try {
+            originSuggestions = debouncedSuggestions(text)
+        } finally {
+            if (originSearch === search) originSearch = null
+        }
     }
 
     suspend fun updateDestination(text: String) {
         if (text != destination) clearLookup()
         destination = text
-        destinationSuggestions = suggestions(text)
+        val search = replaceSearch(destinationSearch)
+        destinationSearch = search
+        try {
+            destinationSuggestions = debouncedSuggestions(text)
+        } finally {
+            if (destinationSearch === search) destinationSearch = null
+        }
     }
 
     fun selectOriginSuggestion(suggestion: PlaceSuggestion) {
+        originSearch?.cancel()
         if (suggestion.label != origin) clearLookup()
         origin = suggestion.label
         originSuggestions = emptyList()
@@ -241,6 +260,7 @@ class TripCostViewModel(
     }
 
     fun selectDestinationSuggestion(suggestion: PlaceSuggestion) {
+        destinationSearch?.cancel()
         if (suggestion.label != destination) clearLookup()
         destination = suggestion.label
         destinationSuggestions = emptyList()
@@ -384,9 +404,20 @@ class TripCostViewModel(
         selectedVehicle = null
     }
 
-    private suspend fun suggestions(query: String): List<PlaceSuggestion> {
+    private suspend fun replaceSearch(previous: Job?): Job? {
+        val current = currentCoroutineContext()[Job]
+        if (previous !== current) previous?.cancel()
+        return current
+    }
+
+    private suspend fun debouncedSuggestions(query: String): List<PlaceSuggestion> {
         val text = query.trim()
         if (text.length < MIN_SUGGESTION_QUERY) return emptyList()
+        delay(SUGGESTION_DEBOUNCE_MILLIS)
+        return suggestions(text)
+    }
+
+    private suspend fun suggestions(text: String): List<PlaceSuggestion> {
         suggestionsWorking = true
         return try {
             routeEstimateProvider.suggestions(text).take(MAX_SUGGESTIONS)
@@ -402,5 +433,6 @@ class TripCostViewModel(
     companion object {
         private const val MIN_SUGGESTION_QUERY = 3
         private const val MAX_SUGGESTIONS = 5
+        const val SUGGESTION_DEBOUNCE_MILLIS = 400L
     }
 }

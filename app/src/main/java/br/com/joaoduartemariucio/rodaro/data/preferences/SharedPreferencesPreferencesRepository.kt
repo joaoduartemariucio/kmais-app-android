@@ -24,6 +24,8 @@ class SharedPreferencesPreferencesRepository(
                 currency = storage.getString(KEY_CURRENCY, null)?.let(::currency),
                 unitSystem = storage.getString(KEY_UNITS, null)?.let(::units) ?: UnitSystem.METRIC,
                 language = storage.getString(KEY_LANGUAGE, null)?.let(::language) ?: LanguageOption.SYSTEM,
+                usageStatisticsEnabled = storage.getBoolean(KEY_USAGE_STATISTICS, true),
+                personalizedAdsEnabled = storage.getBoolean(KEY_PERSONALIZED_ADS, false),
             )
         }
 
@@ -35,7 +37,14 @@ class SharedPreferencesPreferencesRepository(
                 putString(KEY_CURRENCY, preferences.currency?.name)
                 putString(KEY_UNITS, preferences.unitSystem.name)
                 putString(KEY_LANGUAGE, preferences.language.name)
+                putBoolean(KEY_USAGE_STATISTICS, preferences.usageStatisticsEnabled)
+                putBoolean(KEY_PERSONALIZED_ADS, preferences.personalizedAdsEnabled)
             }
+        }
+
+    override suspend fun clear() =
+        withContext(Dispatchers.IO) {
+            storage.edit(commit = true) { clear() }
         }
 
     private fun currency(name: String): CurrencyOption? = CurrencyOption.entries.firstOrNull { it.name == name }
@@ -51,5 +60,7 @@ class SharedPreferencesPreferencesRepository(
         const val KEY_CURRENCY = "currency"
         const val KEY_UNITS = "units"
         const val KEY_LANGUAGE = "language"
+        const val KEY_USAGE_STATISTICS = "usage_statistics_enabled"
+        const val KEY_PERSONALIZED_ADS = "personalized_ads_enabled"
     }
 }

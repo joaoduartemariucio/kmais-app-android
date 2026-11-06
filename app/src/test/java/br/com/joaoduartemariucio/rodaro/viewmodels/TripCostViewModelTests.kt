@@ -26,6 +26,10 @@ import br.com.joaoduartemariucio.rodaro.fakes.InMemoryVehicleRepository
 import br.com.joaoduartemariucio.rodaro.presentation.common.DisplayPreferences
 import br.com.joaoduartemariucio.rodaro.presentation.common.NumberInput
 import br.com.joaoduartemariucio.rodaro.presentation.trips.TripCostViewModel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -468,6 +472,55 @@ class TripCostViewModelTests {
             viewModel.selectDestinationSuggestion(viewModel.destinationSuggestions.first())
             assertEquals("São Paulo, SP, Brasil", viewModel.destination)
             assertTrue(viewModel.destinationSuggestions.isEmpty())
+        }
+
+    @Test
+    fun `fast typing only searches the last text once the user pauses`() =
+        runTest {
+            val provider = FakeRouteEstimateProvider(suggestions = listOf(PlaceSuggestion("Campinas, SP, Brasil")))
+            val viewModel = makeViewModel(routeEstimateProvider = provider)
+
+            val first = launch { viewModel.updateOrigin("Cam") }
+            advanceTimeBy(100)
+            val second = launch { viewModel.updateOrigin("Campi") }
+            advanceTimeBy(100)
+            val third = launch { viewModel.updateOrigin("Campinas") }
+            advanceUntilIdle()
+
+            assertTrue(first.isCancelled)
+            assertTrue(second.isCancelled)
+            assertTrue(third.isCompleted && !third.isCancelled)
+            assertEquals(listOf("Campinas"), provider.queries)
+            assertEquals(1, viewModel.originSuggestions.size)
+        }
+
+    @Test
+    fun `picking a suggestion cancels the search still waiting`() =
+        runTest {
+            val provider = FakeRouteEstimateProvider(suggestions = listOf(PlaceSuggestion("Campinas, SP, Brasil")))
+            val viewModel = makeViewModel(routeEstimateProvider = provider)
+
+            launch { viewModel.updateDestination("Campinas") }
+            runCurrent()
+            viewModel.selectDestinationSuggestion(PlaceSuggestion("Campinas, SP, Brasil"))
+            advanceUntilIdle()
+
+            assertTrue(provider.queries.isEmpty())
+            assertTrue(viewModel.destinationSuggestions.isEmpty())
+            assertEquals("Campinas, SP, Brasil", viewModel.destination)
+        }
+
+    @Test
+    fun `text shorter than three letters clears suggestions without a request`() =
+        runTest {
+            val provider = FakeRouteEstimateProvider(suggestions = listOf(PlaceSuggestion("Campinas, SP, Brasil")))
+            val viewModel = makeViewModel(routeEstimateProvider = provider)
+            viewModel.updateOrigin("Campinas")
+
+            viewModel.updateOrigin("Ca")
+
+            assertEquals(listOf("Campinas"), provider.queries)
+            assertTrue(viewModel.originSuggestions.isEmpty())
         }
 
     @Test

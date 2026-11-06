@@ -37,11 +37,23 @@ class PreferenceStoreTests {
                     currency = CurrencyOption.UYU,
                     unitSystem = UnitSystem.IMPERIAL,
                     language = LanguageOption.ENGLISH,
+                    usageStatisticsEnabled = false,
+                    personalizedAdsEnabled = true,
                 )
 
             repository.save(stored)
 
             assertEquals(stored, SharedPreferencesPreferencesRepository(context).get())
+        }
+
+    @Test
+    fun `clearing brings every preference back to its default`() =
+        runTest {
+            repository.save(Preferences(currency = CurrencyOption.EUR, personalizedAdsEnabled = true))
+
+            repository.clear()
+
+            assertEquals(Preferences(), SharedPreferencesPreferencesRepository(context).get())
         }
 
     @Test
