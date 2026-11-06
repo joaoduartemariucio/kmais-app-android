@@ -267,7 +267,7 @@
     <string name="saved_routes_empty_title">Ainda não há rotas salvas</string>
     <string name="saved_routes_empty_message">Salve suas rotas frequentes para reabrir rapidamente.</string>
     <string name="new_route_calculation">Novo cálculo de rota</string>
-    <string name="route_cost_scope_note">Estimativa baseada apenas em distância, consumo e preço do combustível. Pesquise os custos de pedágio à parte.</string>
+    <string name="route_cost_scope_note">Estimativa baseada apenas em distância, consumo e preço do combustível. O pedágio não está incluído: consulte o valor à parte.</string>
     <string name="delete_route">Excluir esta rota</string>
     <string name="new_route_title">Novo cálculo</string>
     <string name="edit_route_title">Editar cálculo</string>
@@ -275,6 +275,7 @@
     <string name="swap_places">Inverter origem e destino</string>
     <string name="one_way">Só ida</string>
     <string name="route_has_tolls">Rota com pedágio</string>
+    <string name="trip_tolls_not_included">+ pedágio, não incluído</string>
     <string name="route_tolls_cost">Pedágio: %1$s</string>
     <string name="trip_total_cost">Custo total da viagem</string>
     <string name="trip_cost_breakdown">Combustível %1$s · Pedágio %2$s</string>

@@ -261,7 +261,7 @@
     <string name="saved_routes_empty_title">No saved routes yet</string>
     <string name="saved_routes_empty_message">Save your frequent routes to reopen them quickly.</string>
     <string name="new_route_calculation">New route calculation</string>
-    <string name="route_cost_scope_note">Estimate based only on distance, consumption and fuel price. Check toll costs separately.</string>
+    <string name="route_cost_scope_note">Estimate based only on distance, consumption and fuel price. Tolls are not included: check their cost separately.</string>
     <string name="delete_route">Delete this route</string>
     <string name="new_route_title">New calculation</string>
     <string name="edit_route_title">Edit calculation</string>
@@ -269,6 +269,7 @@
     <string name="swap_places">Swap origin and destination</string>
     <string name="one_way">One way</string>
     <string name="route_has_tolls">Route with tolls</string>
+    <string name="trip_tolls_not_included">+ tolls, not included</string>
     <string name="route_tolls_cost">Tolls: %1$s</string>
     <string name="trip_total_cost">Total trip cost</string>
     <string name="trip_cost_breakdown">Fuel %1$s · Tolls %2$s</string>

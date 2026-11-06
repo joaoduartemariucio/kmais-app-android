@@ -4,10 +4,6 @@ import br.com.joaoduartemariucio.rodaro.data.network.DirectionsRequest
 import br.com.joaoduartemariucio.rodaro.data.network.DirectionsRoute
 import br.com.joaoduartemariucio.rodaro.data.network.OrsApi
 import br.com.joaoduartemariucio.rodaro.data.network.Polyline
-import br.com.joaoduartemariucio.rodaro.data.network.RodaroApi
-import br.com.joaoduartemariucio.rodaro.data.network.RodaroCoordinate
-import br.com.joaoduartemariucio.rodaro.data.network.RodaroRouteOption
-import br.com.joaoduartemariucio.rodaro.data.network.RodaroRouteRequest
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RouteLookupError
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.PlaceSuggestion
 import br.com.joaoduartemariucio.rodaro.domain.trips.entities.RouteEstimate
@@ -17,8 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlin.coroutines.cancellation.CancellationException
@@ -27,7 +21,6 @@ import kotlin.math.roundToLong
 
 class OpenRouteServiceProvider(
     private val api: OrsApi,
-    private val routes: RodaroApi? = null,
 ) : RouteEstimateProvider {
     override suspend fun suggestions(query: String): List<PlaceSuggestion> =
         try {
@@ -52,10 +45,10 @@ class OpenRouteServiceProvider(
         withContext(Dispatchers.IO) {
             val from = coordinates(origin)
             val to = coordinates(destination)
-            routes?.let { estimateWithTolls(it, from, to, vehicleKind) } ?: estimateWithoutTollCost(from, to)
+            route(from, to)
         }
 
-    private suspend fun estimateWithoutTollCost(
+    private suspend fun route(
         from: List<Double>,
         to: List<Double>,
     ): RouteEstimate {
@@ -77,39 +70,6 @@ class OpenRouteServiceProvider(
             path = route.geometry?.let { Polyline.decode(it, Polyline.PRECISION_5) }.orEmpty(),
         )
     }
-
-    private suspend fun estimateWithTolls(
-        routes: RodaroApi,
-        from: List<Double>,
-        to: List<Double>,
-        vehicleKind: VehicleKind,
-    ): RouteEstimate {
-        val response =
-            request {
-                routes.routes(
-                    RodaroRouteRequest(
-                        origin = coordinate(from),
-                        destination = coordinate(to),
-                        vehicle = if (vehicleKind == VehicleKind.MOTORCYCLE) "motorcycle" else "car",
-                    ),
-                )
-            }
-        val outbound = response.outbound.firstOrNull() ?: throw RouteLookupError.RequestFailed(IllegalStateException("empty route"))
-        val inbound = response.inbound?.firstOrNull()
-        val tollCost = tollCost(outbound)
-        return RouteEstimate(
-            distanceKm = outbound.distanceKm,
-            durationMinutes = outbound.durationMinutes,
-            hasTolls = outbound.tolls.charges.isNotEmpty(),
-            tollCost = tollCost,
-            roundTripTollCost = inbound?.let { tollCost.add(tollCost(it)) } ?: tollCost.multiply(BigDecimal(2)),
-            path = Polyline.decode(outbound.geometry, Polyline.PRECISION_6),
-        )
-    }
-
-    private fun tollCost(option: RodaroRouteOption): BigDecimal = BigDecimal.valueOf(option.tolls.total).setScale(2, RoundingMode.HALF_UP)
-
-    private fun coordinate(lonLat: List<Double>) = RodaroCoordinate(lat = lonLat[1], lon = lonLat[0])
 
     private suspend fun <T> request(call: suspend () -> T): T =
         try {

@@ -28,24 +28,40 @@ val orsApiKeyFromEnvironment =
 
 val orsApiKey = orsApiKeyFromLocalProperties.ifBlank { orsApiKeyFromEnvironment }
 
-val rodaroApiUrl =
+fun environment(name: String): String? =
     providers
-        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
-        .asText.orNull
-        ?.lineSequence()
-        ?.firstOrNull { it.startsWith("rodaro.api.url=") }
-        ?.substringAfter("=")
+        .environmentVariable(name)
+        .orNull
         ?.trim()
-        .orEmpty()
-        .ifBlank {
-            providers
-                .environmentVariable("RODARO_API_URL")
-                .orNull
-                ?.trim()
-                .orEmpty()
-        }
+        ?.takeIf { it.isNotEmpty() }
 
-val debugRodaroApiUrl = rodaroApiUrl.ifBlank { "http://localhost:3000/" }
+val releaseKeystorePath = environment("KEYSTORE_PATH")
+val versionProperties =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("version.properties"))
+        .asText
+        .get()
+        .lineSequence()
+        .map { it.trim() }
+        .filter { "=" in it }
+        .associate { it.substringBefore("=") to it.substringAfter("=") }
+
+val appVersionCode = versionProperties.getValue("VERSION_CODE").toInt()
+val appVersionName = versionProperties.getValue("VERSION_NAME")
+
+tasks
+    .matching { it.name in setOf("assembleRelease", "bundleRelease") }
+    .configureEach {
+        val missingKey = orsApiKey.isBlank()
+        doFirst {
+            if (missingKey) {
+                throw GradleException(
+                    "OpenRouteService key missing: add ors.api.key=<key> to local.properties " +
+                        "or set the OPEN_ROUTE_API_KEY environment variable before building a release.",
+                )
+            }
+        }
+    }
 
 android {
     namespace = "br.com.joaoduartemariucio.rodaro"
@@ -57,15 +73,25 @@ android {
         applicationId = "br.com.joaoduartemariucio.rodaro"
         minSdk = 36
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+    }
+
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = environment("KEYSTORE_PASSWORD")
+                keyAlias = environment("KEY_ALIAS")
+                keyPassword = environment("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         debug {
             enableUnitTestCoverage = true
             buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
-            buildConfigField("String", "RODARO_API_URL", "\"$debugRodaroApiUrl\"")
             resValue("string", "admob_app_id", "ca-app-pub-3940256099942544~3347511713")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-3940256099942544/9214589741")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-3940256099942544/1033173712")
@@ -73,11 +99,13 @@ android {
             resValue("string", "admob_app_open_unit_id", "ca-app-pub-3940256099942544/9257395921")
         }
         release {
+            if (releaseKeystorePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = false
             }
             buildConfigField("String", "ORS_API_KEY", "\"$orsApiKey\"")
-            buildConfigField("String", "RODARO_API_URL", "\"$rodaroApiUrl\"")
             resValue("string", "admob_app_id", "ca-app-pub-1068825778444539~3367882368")
             resValue("string", "admob_banner_unit_id", "ca-app-pub-1068825778444539/5512371965")
             resValue("string", "admob_interstitial_unit_id", "ca-app-pub-1068825778444539/8484477679")

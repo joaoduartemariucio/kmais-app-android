@@ -5,11 +5,8 @@ import br.com.joaoduartemariucio.rodaro.data.network.DirectionsResponse
 import br.com.joaoduartemariucio.rodaro.data.network.GeocodeResponse
 import br.com.joaoduartemariucio.rodaro.data.network.OrsApi
 import br.com.joaoduartemariucio.rodaro.data.network.OrsNetwork
-import br.com.joaoduartemariucio.rodaro.data.network.Polyline
-import br.com.joaoduartemariucio.rodaro.data.network.RodaroNetwork
 import br.com.joaoduartemariucio.rodaro.data.trips.repositories.OpenRouteServiceProvider
 import br.com.joaoduartemariucio.rodaro.domain.common.errors.RouteLookupError
-import br.com.joaoduartemariucio.rodaro.domain.vehicles.entities.VehicleKind
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -21,7 +18,6 @@ import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
-import java.math.BigDecimal
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlin.coroutines.cancellation.CancellationException
@@ -74,73 +70,6 @@ class OpenRouteServiceProviderTests {
             val firstRequest = server.takeRequest()
             assertEquals("test-key", firstRequest.getHeader("Authorization"))
             assertTrue(firstRequest.path.orEmpty().contains("api_key=test-key"))
-        }
-
-    @Test
-    fun `the rodaro api supplies distance and the toll cost for both directions`() =
-        runTest {
-            val withTolls =
-                OpenRouteServiceProvider(
-                    api = OrsNetwork.api("test-key", server.url("/").toString()),
-                    routes = RodaroNetwork.api(server.url("/").toString()),
-                )
-            server.enqueue(geocode)
-            server.enqueue(geocode)
-            server.enqueue(
-                MockResponse().setBody(
-                    """
-                    {"outbound":[{"distanceKm":433.62,"durationMinutes":335,"geometry":"_izlhA~rlgdF_{geC~ywl@","tolls":{"total":66.4,"charges":[{"name":"Arujá","value":4.6}]}}],
-                     "inbound":[{"distanceKm":433.1,"durationMinutes":330,"tolls":{"total":61.8,"charges":[{"name":"Arujá","value":4.6}]}}]}
-                    """.trimIndent(),
-                ),
-            )
-
-            val estimate = withTolls.estimate("São Paulo, SP", "Rio de Janeiro, RJ", VehicleKind.MOTORCYCLE)
-
-            assertEquals(433.62, estimate.distanceKm, 0.001)
-            assertEquals(335, estimate.durationMinutes)
-            assertTrue(estimate.hasTolls)
-            assertEquals(BigDecimal("66.40"), estimate.tollCost)
-            assertEquals(BigDecimal("128.20"), estimate.roundTripTollCost)
-            assertEquals(Polyline.encode(estimate.path, Polyline.PRECISION_6), "_izlhA~rlgdF_{geC~ywl@")
-            assertEquals(2, estimate.path.size)
-            server.takeRequest()
-            server.takeRequest()
-            val routeRequest = server.takeRequest()
-            assertEquals("/v1/routes", routeRequest.path)
-            val body = routeRequest.body.readUtf8()
-            assertTrue(body.contains("\"vehicle\":\"motorcycle\""))
-            assertTrue(body.contains("\"roundTrip\":true"))
-            assertTrue(body.contains("\"lat\":-23.55052"))
-        }
-
-    @Test
-    fun `a rodaro route without the return doubles the one way toll and a missing route fails`() =
-        runTest {
-            val withTolls =
-                OpenRouteServiceProvider(
-                    api = OrsNetwork.api("test-key", server.url("/").toString()),
-                    routes = RodaroNetwork.api(server.url("/").toString()),
-                )
-            server.enqueue(geocode)
-            server.enqueue(geocode)
-            server.enqueue(
-                MockResponse().setBody(
-                    """
-                    {"outbound":[{"distanceKm":80.0,"durationMinutes":60,"tolls":{"total":0,"charges":[]}}],"inbound":null}
-                    """.trimIndent(),
-                ),
-            )
-
-            val estimate = withTolls.estimate("A", "B")
-
-            assertEquals(false, estimate.hasTolls)
-            assertEquals(BigDecimal("0.00"), estimate.roundTripTollCost)
-
-            server.enqueue(geocode)
-            server.enqueue(geocode)
-            server.enqueue(MockResponse().setResponseCode(404).setBody("{}"))
-            assertIs<RouteLookupError.RequestFailed>(runCatching { withTolls.estimate("A", "B") }.exceptionOrNull())
         }
 
     @Test

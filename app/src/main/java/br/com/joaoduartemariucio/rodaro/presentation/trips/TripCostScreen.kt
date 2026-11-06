@@ -628,6 +628,14 @@ private fun ResultBar(
                         maxLines = 1,
                     )
                 }
+                if (cost != null && toll == null && viewModel.hasTolls == true) {
+                    Text(
+                        stringResource(R.string.trip_tolls_not_included),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Palette.orange,
+                        maxLines = 1,
+                    )
+                }
                 Text(
                     when {
                         cost == null -> stringResource(R.string.trip_cost_hint)

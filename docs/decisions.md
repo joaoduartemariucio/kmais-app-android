@@ -589,7 +589,10 @@ whether the road has tolls. The provider is the free
 - A free API key (from `openrouteservice.org/dev`) is read from `local.properties`
   (`ors.api.key`), injected as `BuildConfig.ORS_API_KEY` and sent as the `Authorization`
   header. Without a key the app degrades gracefully: the lookup button explains that a key
-  is missing and nothing else breaks.
+  is missing and nothing else breaks. The `OPEN_ROUTE_API_KEY` environment variable is the
+  fallback, and CI writes it from the GitHub secret of the same name into `local.properties`.
+  Debug builds tolerate a missing key, but `assembleRelease` and `bundleRelease` fail without
+  one, so a release can never ship with route lookup silently disabled.
 - **Why ORS:** it is the free routing API with an explicit toll flag; Google's equivalent
   needs billing, and OSRM-class servers have no toll data at all.
 - **Why behind a Domain interface:** `RouteEstimateProvider` lives in Domain, so the
@@ -632,15 +635,16 @@ the typed numbers.
   plan in the detail uses the vehicle's current capacity, since capacity is not part of the
   snapshot and rarely changes.
 
-- **Route and toll cost come from rodaro-api when `RODARO_API_URL` is set.** OpenRouteService
-  stays for autocomplete and geocoding, since rodaro-api only takes coordinates. The API is
-  asked for both directions because tolls are often charged one way only (Santos → São Paulo
-  pays nothing), so the round-trip toll is the sum of the two legs rather than double the
-  outbound. Debug builds default to `http://localhost:3000/` behind `adb reverse` (`make
-  local-api`) and allow cleartext: with target SDK 37 Android silently drops connections to
-  private addresses such as `10.0.2.2` unless the app holds the local network permission, while
-  loopback is exempt and works the same on the emulator and on a USB device. Release builds use
-  the API only when the URL is configured.
+- **Routes come only from OpenRouteService; the toll amount is not looked up.** An earlier
+  version priced tolls through our own rodaro-api, but that API is no longer going to be
+  deployed: every lookup would cost money on a paid toll provider, and the free path already
+  gives distance, duration, the map path and a reliable "has tolls" flag. When a route has
+  tolls and no amount, the total is labelled "+ tolls, not included" and the footer says the
+  estimate leaves tolls out. `tollCost` stays in `RouteEstimate` and in `trip_routes`, so routes
+  saved with a toll amount keep showing it, and a future free source (for example ANTT/ARTESP
+  open data on toll plazas) can fill it without a migration.
+- **Cost:** the ORS key ships in the APK, so all users share its free daily quota; if usage
+  grows, geocoding is the first call to move off ORS.
 
 - **The route preview is MapLibre on OpenFreeMap tiles.** Both are free with no API key or
   usage quota, unlike Google Maps SDK or Mapbox. The map is a static preview (gestures off) so
@@ -653,6 +657,30 @@ the typed numbers.
   trip costs out of pocket, so tolls belong in it, and the fuel/toll split is shown under it.
   Cost per km is kept as fuel cost so it stays comparable with the vehicle's own cost per km,
   which comes from fill-ups and has no tolls.
+
+### Release bundles are built and signed by GitHub Actions
+
+GitHub secrets cannot be read back, not even by their owner, so a local build never sees the
+OpenRouteService key or the keystore stored there. Releases are therefore built by
+`release.yml` (see [CI](ci.md#release)), which hands them to Gradle as environment variables.
+
+- **Signing:** `signingConfigs.release` exists only when `KEYSTORE_PATH` is set; without it a
+  local release is unsigned and can still be signed with Android Studio's "Generate Signed
+  Bundle". The keystore is the Play upload key, so a leak is recoverable by asking Google for a
+  new upload key; a copy is kept outside GitHub.
+- **Version:** `version.properties` is the single source for `versionName` and `versionCode`.
+  The release workflow bumps it (patch, minor or major, and always +1 on the code), commits and
+  tags `vX.Y.Z` itself, so the number in the repo always matches the last build sent out and
+  nobody edits it by hand. The commit and tag are pushed only after the build passes. Releases
+  run only on `main`, since the bump commit lands on the branch the run started from.
+- **Distribution:** App Distribution gets the signed **APK**, not the bundle, because sending
+  an AAB there requires linking Firebase to the Play app and goes through Play's own signing;
+  the APK installs as is. Testers who also have the Play version must uninstall it first, since
+  Play re-signs with the app signing key and the APK carries the upload key. Google Play gets
+  the bundle through `r0adkll/upload-google-play`; the track is chosen on each run and defaults to
+  internal, so production is never reached by accident.
+- **Cost:** a release is a manual run, and the first bundle of a new app must
+  still be uploaded to Play by hand before the API accepts uploads.
 
 ## Tooling
 
